@@ -2,7 +2,7 @@ from src.Stream import Stream
 from src.Packet import Packet, PacketFactory
 from src.UserInterface import UserInterface
 from src.tools.SemiNode import SemiNode
-from src.tools.NetworkGraph import NetworkGraph, GraphNode
+from src.tools.Graph import NetworkGraph, GraphNode
 import time
 import threading
 
