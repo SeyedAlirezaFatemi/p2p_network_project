@@ -4,24 +4,24 @@ import time
 class GraphNode:
     def __init__(self, address):
         """
-
         :param address: (ip, port)
         :type address: tuple
-
         """
-        pass
+        self.address = address
+        self.parent = None
+        self.children = []
 
     def set_parent(self, parent):
-        pass
+        self.parent = parent
 
     def set_address(self, new_address):
-        pass
+        self.address = new_address
 
     def __reset(self):
-        pass
+        self.parent = None
 
     def add_child(self, child):
-        pass
+        self.children += [child]
 
 
 class NetworkGraph:
