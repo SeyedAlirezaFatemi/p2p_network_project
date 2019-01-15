@@ -41,7 +41,7 @@
     type = 4                    b'\x00\x04'
     length = 12                 b'\x00\x00\x00\x0c'
     ip = '192.168.001.001'      b'\x00\xc0\x00\xa8\x00\x01\x00\x01'
-    port = '65000'              b'\x00\x00\\xfd\xe8'
+    port = '65000'              b'\x00\x00\xfd\xe8'
     Body = 'Hello World!'       b'Hello World!'
 
     Bytes = b'\x00\x01\x00\x04\x00\x00\x00\x0c\x00\xc0\x00\xa8\x00\x01\x00\x01\x00\x00\xfd\xe8Hello World!'
@@ -177,20 +177,28 @@
             
     
 """
-from struct import *
+import socket
+import struct
+
+from src.tools.type_repo import Address
 
 
 class Packet:
-    def __init__(self, buf):
+    def __init__(self, buf: bytearray):
         """
         The decoded buffer should convert to a new packet.
 
         :param buf: Input buffer was just decoded.
         :type buf: bytearray
         """
-        pass
+        self.buf = buf
+        self.header = buf[:20]
+        self.body = buf[21:]
+        self.version, self.type, self.length = struct.unpack('!HHI', buf[:7])
+        self.source_ip = socket.inet_ntoa(buf[8:16][1::2])  # Choose odd bytes of the 8 bytes of ip
+        (self.source_port) = struct.unpack('!I', buf[8:16])
 
-    def get_header(self):
+    def get_header(self) -> str:
         """
 
         :return: Packet header
@@ -198,31 +206,31 @@ class Packet:
         """
         pass
 
-    def get_version(self):
+    def get_version(self) -> int:
         """
 
         :return: Packet Version
         :rtype: int
         """
-        pass
+        return self.version
 
-    def get_type(self):
+    def get_type(self) -> int:
         """
 
         :return: Packet type
         :rtype: int
         """
-        pass
+        return self.type
 
-    def get_length(self):
+    def get_length(self) -> int:
         """
 
         :return: Packet length
         :rtype: int
         """
-        pass
+        return self.length
 
-    def get_body(self):
+    def get_body(self) -> str:
         """
 
         :return: Packet body
@@ -230,7 +238,7 @@ class Packet:
         """
         pass
 
-    def get_buf(self):
+    def get_buf(self) -> bytearray:
         """
         In this function, we will make our final buffer that represents the Packet with the Struct class methods.
 
@@ -239,29 +247,29 @@ class Packet:
         """
         pass
 
-    def get_source_server_ip(self):
+    def get_source_server_ip(self) -> str:
         """
 
         :return: Server IP address for the sender of the packet.
         :rtype: str
         """
-        pass
+        return self.source_ip
 
-    def get_source_server_port(self):
+    def get_source_server_port(self) -> int:
         """
 
         :return: Server Port address for the sender of the packet.
-        :rtype: str
+        :rtype: int
         """
-        pass
+        return self.source_port
 
-    def get_source_server_address(self):
+    def get_source_server_address(self) -> Address:
         """
 
-        :return: Server address; The format is like ('192.168.001.001', '05335').
+        :return: Server address; The format is like ('192.168.001.001', 05335).
         :rtype: tuple
         """
-        pass
+        return self.source_ip, self.source_port
 
 
 class PacketFactory:
