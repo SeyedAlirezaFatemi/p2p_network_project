@@ -1,5 +1,5 @@
 # import time
-from typing import List
+from typing import List, Optional
 
 from src.tools.type_repo import Address
 
@@ -13,12 +13,16 @@ class GraphNode:
         self.address = address
         self.parent = None
         self.children = []
+        self.level = None
 
     def set_parent(self, parent):
         self.parent = parent
 
     def set_address(self, new_address: Address):
         self.address = new_address
+
+    def set_level(self, level: int):
+        self.level = level
 
     def __reset(self):
         self.parent = None
@@ -40,7 +44,7 @@ class NetworkGraph:
         root.alive = True
         self.nodes = [root]
 
-    def find_live_node(self, sender: Address) -> GraphNode:
+    def find_live_node(self, sender: Address) -> Optional[GraphNode]:
         """
         Here we should find a neighbour for the sender.
         Best neighbour is the node who is nearest the root and has not more than one child.
@@ -74,9 +78,22 @@ class NetworkGraph:
                 if child.address not in visited or not visited[child.address]:
                     queue.append(child)
                     visited[child.address] = True
-        # TODO: Not done yet
+        sender_node = self.find_node(sender)  # For the warning
+        for node in graph[::-1]:
+            if node.level == 8 or len(node.children) == 2 or (sender_node and self.check_is_parent(node, sender_node)):
+                continue
+            return node
+        # No node available if we reach here!
 
-    def find_node(self, node_address: Address) -> GraphNode:
+    def check_is_parent(self, child: GraphNode, parent: GraphNode) -> bool:
+        while True:
+            child = child.parent
+            if child == parent:
+                return True
+            elif child is None:
+                return False
+
+    def find_node(self, node_address: Address) -> Optional[GraphNode]:
         for node in self.nodes:
             if node_address == node.address:
                 return node
