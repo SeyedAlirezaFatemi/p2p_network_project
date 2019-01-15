@@ -15,26 +15,26 @@ class GraphNode:
         self.children = []
         self.level = None
 
-    def set_parent(self, parent):
+    def set_parent(self, parent) -> None:
         self.parent = parent
 
-    def set_address(self, new_address: Address):
+    def set_address(self, new_address: Address) -> None:
         self.address = new_address
 
-    def set_level(self, level: int):
+    def set_level(self, level: int) -> None:
         self.level = level
 
-    def __reset(self):
+    def __reset(self) -> None:
         self.parent = None
         self.children = []
 
-    def add_child(self, child):
+    def add_child(self, child) -> None:
         self.children.append(child)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.address == other.address
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.address.__str__()
 
 
@@ -98,16 +98,16 @@ class NetworkGraph:
             if node_address == node.address:
                 return node
 
-    def turn_on_node(self, node_address: Address):
+    def turn_on_node(self, node_address: Address) -> None:
         pass
 
-    def turn_off_node(self, node_address: Address):
+    def turn_off_node(self, node_address: Address) -> None:
         pass
 
-    def remove_node(self, node_address: Address):
+    def remove_node(self, node_address: Address) -> None:
         self.nodes.remove(self.find_node(node_address))
 
-    def add_node(self, ip: str, port: int, father_address: Address):
+    def add_node(self, ip: str, port: int, father_address: Address) -> None:
         """
         Add a new node with node_address if it does not exist in our NetworkGraph and set its father.
 
@@ -126,4 +126,12 @@ class NetworkGraph:
 
         :return:
         """
-        pass
+        new_node = GraphNode((ip, port))
+        father_node = self.find_node(father_address)
+        new_node.set_parent(father_node)
+        if father_node == self.root:
+            new_node.set_level(1)
+        else:
+            new_node.set_level(father_node.level + 1)
+        father_node.add_child(new_node)
+        self.nodes.append(new_node)
