@@ -181,7 +181,15 @@ import socket
 import struct
 from typing import List
 
+from src.tools.parsers import parse_ip, parse_port
 from src.tools.type_repo import Address
+
+VERSION = 1
+REGISTER = 1
+ADVERTISE = 2
+JOIN = 3
+MESSAGE = 4
+REUNION = 5
 
 
 class Packet:
@@ -300,20 +308,25 @@ class PacketFactory:
         return Packet(version, packet_type, length, source_ip, source_port, body_chars)
 
     @staticmethod
-    def new_reunion_packet(packet_type: str, source_address: Address, nodes_array: List[Address]) -> Packet:
+    def new_reunion_packet(reunion_type: str, source_address: Address, nodes_array: List[Address]) -> Packet:
         """
-        :param packet_type: Reunion Hello (REQ) or Reunion Hello Back (RES)
+        :param reunion_type: Reunion Hello (REQ) or Reunion Hello Back (RES)
         :param source_address: IP/Port address of the packet sender.
         :param nodes_array: [(ip0, port0), (ip1, port1), ...] It is the path to the 'destination'.
 
-        :type packet_type: str
+        :type reunion_type: str
         :type source_address: tuple
         :type nodes_array: list
 
         :return New reunion packet.
         :rtype Packet
         """
-        pass
+        n_entries = len(nodes_array)
+        body = reunion_type + str(n_entries)
+        for node in nodes_array:
+            body += (parse_ip(node[0]) + parse_port(node[1]))
+        length = len(body)
+        return Packet(VERSION, REUNION, length, source_address[0], source_address[1], body)
 
     @staticmethod
     def new_advertise_packet(packet_type: str, source_server_address: Address, neighbour: Address = None) -> Packet:
