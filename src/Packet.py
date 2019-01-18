@@ -179,6 +179,7 @@
 """
 import socket
 import struct
+from typing import List
 
 from src.tools.type_repo import Address
 
@@ -206,7 +207,7 @@ class Packet:
         :return: Packet header
         :rtype: str
         """
-        pass
+        return f'Version:{self.version},Type:{self.type},Length:{self.length}'
 
     def get_version(self) -> int:
         """
@@ -280,7 +281,7 @@ class PacketFactory:
     """
 
     @staticmethod
-    def parse_buffer(buffer):
+    def parse_buffer(buffer) -> Packet:
         """
         In this function we will make a new Packet from input buffer with struct class methods.
 
@@ -293,13 +294,13 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_reunion_packet(type, source_address, nodes_array):
+    def new_reunion_packet(packet_type: str, source_address: Address, nodes_array: List[Address]) -> Packet:
         """
-        :param type: Reunion Hello (REQ) or Reunion Hello Back (RES)
+        :param packet_type: Reunion Hello (REQ) or Reunion Hello Back (RES)
         :param source_address: IP/Port address of the packet sender.
         :param nodes_array: [(ip0, port0), (ip1, port1), ...] It is the path to the 'destination'.
 
-        :type type: str
+        :type packet_type: str
         :type source_address: tuple
         :type nodes_array: list
 
@@ -309,13 +310,13 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_advertise_packet(type, source_server_address, neighbour=None):
+    def new_advertise_packet(packet_type: str, source_server_address: Address, neighbour: Address = None) -> Packet:
         """
-        :param type: Type of Advertise packet
+        :param packet_type: Type of Advertise packet
         :param source_server_address Server address of the packet sender.
         :param neighbour: The neighbour for advertise response packet; The format is like ('192.168.001.001', '05335').
 
-        :type type: str
+        :type packet_type: str
         :type source_server_address: tuple
         :type neighbour: tuple
 
@@ -326,7 +327,7 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_join_packet(source_server_address):
+    def new_join_packet(source_server_address: Address) -> Packet:
         """
         :param source_server_address: Server address of the packet sender.
 
@@ -339,13 +340,14 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_register_packet(type, source_server_address, address=(None, None)):
+    def new_register_packet(packet_type: str, source_server_address: Address,
+                            address: Address = (None, None)) -> Packet:
         """
-        :param type: Type of Register packet
+        :param packet_type: Type of Register packet
         :param source_server_address: Server address of the packet sender.
         :param address: If 'type' is 'request' we need an address; The format is like ('192.168.001.001', '05335').
 
-        :type type: str
+        :type packet_type: str
         :type source_server_address: tuple
         :type address: tuple
 
@@ -356,7 +358,7 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_message_packet(message, source_server_address):
+    def new_message_packet(message: str, source_server_address: Address) -> Packet:
         """
         Packet for sending a broadcast message to the whole network.
 
