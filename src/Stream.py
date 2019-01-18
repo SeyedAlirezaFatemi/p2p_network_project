@@ -1,9 +1,10 @@
 import threading
-from typing import Callable
+from typing import Callable, Optional
 
 from src.tools.Node import Node
 from src.tools.parsers import parse_ip
 from src.tools.simpletcp.tcpserver import TCPServer
+from src.tools.type_repo import Address
 
 
 class Stream:
@@ -20,8 +21,10 @@ class Stream:
         :param port: int
         """
 
-        ip = parse_ip(ip)
+        self.ip = parse_ip(ip)
+        self.port = port
 
+        self.nodes = []
         self._server_in_buf = []
 
         def callback(address, queue, data):
@@ -38,13 +41,13 @@ class Stream:
 
         ServerThread(ip, port, callback).run()
 
-    def get_server_address(self):
+    def get_server_address(self) -> Address:
         """
 
         :return: Our TCPServer address
-        :rtype: tuple
+        :rtype: Address
         """
-        pass
+        return self.ip, self.port
 
     def clear_in_buff(self):
         """
@@ -54,21 +57,22 @@ class Stream:
         """
         self._server_in_buf.clear()
 
-    def add_node(self, server_address, set_register_connection=False):
+    def add_node(self, server_address: Address, set_register_connection: bool = False):
         """
         Will add new a node to our Stream.
 
         :param server_address: New node TCPServer address.
         :param set_register_connection: Shows that is this connection a register_connection or not.
 
-        :type server_address: tuple
+        :type server_address: Address
         :type set_register_connection: bool
 
         :return:
         """
-        pass
+        node = Node(server_address, set_register=set_register_connection)
+        self.nodes.append(node)
 
-    def remove_node(self, node):
+    def remove_node(self, node: Node):
         """
         Remove the node from our Stream.
 
@@ -80,15 +84,16 @@ class Stream:
 
         :return:
         """
-        pass
+        self.nodes.remove(node)
+        node.close()
 
-    def get_node_by_server(self, ip, port):
+    def get_node_by_server(self, ip: str, port: int) -> Optional[Node]:
         """
 
         Will find the node that has IP/Port address of input.
 
         Warnings:
-            1. Before comparing the address parse it to a standard format with Node.parse_### functions.
+            1. Before comparing the address parse it to a standard format with parse_### functions.
 
         :param ip: input address IP
         :param port: input address Port
@@ -96,9 +101,11 @@ class Stream:
         :return: The node that input address.
         :rtype: Node
         """
-        pass
+        for node in self.nodes:
+            if node.get_server_address() == (parse_ip(ip), port):
+                return node
 
-    def add_message_to_out_buff(self, address, message):
+    def add_message_to_out_buff(self, address: Address, message: str):
         """
         In this function, we will add the message to the output buffer of the node that has the input address.
         Later we should use send_out_buf_messages to send these buffers into their sockets.
@@ -111,7 +118,9 @@ class Stream:
 
         :return:
         """
-        pass
+        node = self.get_node_by_server(address[0], address[1])
+        if node:
+            node.add_message_to_out_buff(message)
 
     def read_in_buf(self):
         """
@@ -122,7 +131,7 @@ class Stream:
         """
         return self._server_in_buf
 
-    def send_messages_to_node(self, node):
+    def send_messages_to_node(self, node: Node):
         """
         Send buffered messages to the 'node'
 
@@ -137,7 +146,7 @@ class Stream:
         """
         pass
 
-    def send_out_buf_messages(self, only_register=False):
+    def send_out_buf_messages(self, only_register: bool = False):
         """
         In this function, we will send hole out buffers to their own clients.
 
