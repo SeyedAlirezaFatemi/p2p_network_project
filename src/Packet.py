@@ -185,21 +185,17 @@ from src.tools.type_repo import Address
 
 
 class Packet:
-    def __init__(self, buf: bytearray):
+    def __init__(self, version: int, packet_type: int, length: int, source_ip: str, source_port: int,
+                 body: str):
         """
         The decoded buffer should convert to a new packet.
-
-        :param buf: Input buffer was just decoded.
-        :type buf: bytearray
         """
-        self.buf = buf
-        self.header = buf[:20]
-        self.body = buf[20:]
-        self.version, self.type, self.length = struct.unpack('!HHI', buf[:8])
-        # Choose odd bytes of the 8 bytes of ip because ip is 4 bytes
-        self.source_ip = socket.inet_ntoa(buf[8:16][1::2])
-        self.source_port = struct.unpack('!I', buf[16:20])[0]
-        self.body_chars = struct.unpack(f'{len(self.body)}s', self.body)[0].decode('utf-8')
+        self.version = version
+        self.packet_type = packet_type
+        self.length = length
+        self.source_ip = source_ip
+        self.source_port = source_port
+        self.body = body
 
     def get_header(self) -> str:
         """
@@ -207,7 +203,7 @@ class Packet:
         :return: Packet header
         :rtype: str
         """
-        return f'Version:{self.version},Type:{self.type},Length:{self.length}'
+        return f'Version:{self.version},Type:{self.packet_type},Length:{self.length}'
 
     def get_version(self) -> int:
         """
@@ -223,7 +219,7 @@ class Packet:
         :return: Packet type
         :rtype: int
         """
-        return self.type
+        return self.packet_type
 
     def get_length(self) -> int:
         """
@@ -239,7 +235,7 @@ class Packet:
         :return: Packet body
         :rtype: str
         """
-        return self.body_chars
+        return self.body
 
     def get_buf(self) -> bytearray:
         """
@@ -248,7 +244,10 @@ class Packet:
         :return The parsed packet to the network format.
         :rtype: bytearray
         """
-        pass
+        ip = [int(part) for part in self.source_ip.split('.')]
+        return bytearray(
+            struct.pack(f'!HHLHHHHL{len(self.body)}s', self.version, self.packet_type, self.length, ip[0], ip[1], ip[2],
+                        ip[3], self.source_port, bytes(self.body, 'utf-8')))
 
     def get_source_server_ip(self) -> str:
         """
@@ -281,7 +280,7 @@ class PacketFactory:
     """
 
     @staticmethod
-    def parse_buffer(buffer) -> Packet:
+    def parse_buffer(buffer: bytearray) -> Packet:
         """
         In this function we will make a new Packet from input buffer with struct class methods.
 
@@ -291,7 +290,14 @@ class PacketFactory:
         :rtype: Packet
 
         """
-        pass
+        header = buffer[:20]
+        body = buffer[20:]
+        version, packet_type, length = struct.unpack('!HHI', header[:8])
+        # Choose odd bytes of the 8 bytes of ip because ip is 4 bytes
+        source_ip = socket.inet_ntoa(header[8:16][1::2])
+        source_port = struct.unpack('!I', header[16:20])[0]
+        body_chars = struct.unpack(f'{len(body)}s', body)[0].decode('utf-8')
+        return Packet(version, packet_type, length, source_ip, source_port, body_chars)
 
     @staticmethod
     def new_reunion_packet(packet_type: str, source_address: Address, nodes_array: List[Address]) -> Packet:

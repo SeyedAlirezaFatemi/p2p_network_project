@@ -38,6 +38,15 @@ class GraphNode:
         return self.address.__str__()
 
 
+def check_is_parent(child: GraphNode, parent: GraphNode) -> bool:
+    while True:
+        child = child.parent
+        if child == parent:
+            return True
+        elif child is None:
+            return False
+
+
 class NetworkGraph:
     def __init__(self, root: GraphNode):
         self.root = root
@@ -80,18 +89,10 @@ class NetworkGraph:
                     visited[child.address] = True
         sender_node = self.find_node(sender)  # For the warning
         for node in graph[::-1]:
-            if node.level == 8 or len(node.children) == 2 or (sender_node and self.check_is_parent(node, sender_node)):
+            if node.level == 8 or len(node.children) == 2 or (sender_node and check_is_parent(node, sender_node)):
                 continue
             return node
         # No node available if we reach here!
-
-    def check_is_parent(self, child: GraphNode, parent: GraphNode) -> bool:
-        while True:
-            child = child.parent
-            if child == parent:
-                return True
-            elif child is None:
-                return False
 
     def find_node(self, node_address: Address) -> Optional[GraphNode]:
         for node in self.nodes:

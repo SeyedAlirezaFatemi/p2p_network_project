@@ -1,8 +1,11 @@
-from src.tools.simpletcp.clientsocket import ClientSocket
+# from src.tools.simpletcp.clientsocket import ClientSocket
+
+from src.tools.parsers import parse_ip
+from src.tools.type_repo import Address
 
 
 class Node:
-    def __init__(self, server_address, set_root=False, set_register=False):
+    def __init__(self, server_address: Address, set_root: bool = False, set_register: bool = False):
         """
         The Node object constructor.
 
@@ -17,13 +20,14 @@ class Node:
         :param set_root:
         :param set_register:
         """
-        self.server_ip = Node.parse_ip(server_address[0])
-        self.server_port = Node.parse_port(server_address[1])
+        self.server_ip = parse_ip(server_address[0])
+        self.server_port = server_address[1]
 
         print("Server Address: ", server_address)
 
         self.out_buff = []
-        pass
+        self.is_root = set_root
+        self.is_register = set_register
 
     def send_message(self):
         """
@@ -49,34 +53,10 @@ class Node:
         """
         self.client.close()
 
-    def get_server_address(self):
+    def get_server_address(self) -> Address:
         """
 
         :return: Server address in a pretty format.
         :rtype: tuple
         """
         return self.server_ip, self.server_port
-
-    @staticmethod
-    def parse_ip(ip):
-        """
-        Automatically change the input IP format like '192.168.001.001'.
-        :param ip: Input IP
-        :type ip: str
-
-        :return: Formatted IP
-        :rtype: str
-        """
-        return '.'.join(str(int(part)).zfill(3) for part in ip.split('.'))
-
-    @staticmethod
-    def parse_port(port):
-        """
-        Automatically change the input IP format like '05335'.
-        :param port: Input IP
-        :type port: str
-
-        :return: Formatted IP
-        :rtype: str
-        """
-        return str(int(port)).zfill(5)
