@@ -390,4 +390,5 @@ class PacketFactory:
         :return: New Message packet.
         :rtype: Packet
         """
-        pass
+        length = len(message)
+        return Packet(VERSION, MESSAGE, length, source_server_address[0], source_server_address[1], message)
