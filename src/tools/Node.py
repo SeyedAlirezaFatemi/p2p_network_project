@@ -1,8 +1,9 @@
-# from src.tools.simpletcp.clientsocket import ClientSocket
-
 from src.tools.parsers import parse_ip
+from src.tools.simpletcp.clientsocket import ClientSocket
 from src.tools.type_repo import Address
 
+
+# TODO: Something is wrong or at least not finished
 
 class Node:
     def __init__(self, server_address: Address, set_root: bool = False, set_register: bool = False):
@@ -29,13 +30,20 @@ class Node:
         self.is_root = set_root
         self.is_register = set_register
 
+        try:
+            self.client = ClientSocket(server_address[0], server_address[1])
+        except:
+            pass
+
     def send_message(self):
         """
         Final function to send buffer to the client's socket.
 
         :return:
         """
-        pass
+        for message in self.out_buff:
+            self.client.send(message)
+        self.out_buff.clear()
 
     def add_message_to_out_buff(self, message):
         """
@@ -57,6 +65,6 @@ class Node:
         """
 
         :return: Server address in a pretty format.
-        :rtype: tuple
+        :rtype: Address
         """
         return self.server_ip, self.server_port

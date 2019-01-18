@@ -1,12 +1,14 @@
-from src.tools.simpletcp.tcpserver import TCPServer
+import threading
+from typing import Callable
 
 from src.tools.Node import Node
-import threading
+from src.tools.parsers import parse_ip
+from src.tools.simpletcp.tcpserver import TCPServer
 
 
 class Stream:
 
-    def __init__(self, ip, port):
+    def __init__(self, ip: str, port: int):
         """
         The Stream object constructor.
 
@@ -14,12 +16,11 @@ class Stream:
             1. Make a separate Thread for your TCPServer and start immediately.
 
 
-        :param ip: 15 characters
-        :param port: 5 characters
+        :param ip: str
+        :param port: int
         """
 
-        ip = Node.parse_ip(ip)
-        port = Node.parse_port(port)
+        ip = parse_ip(ip)
 
         self._server_in_buf = []
 
@@ -35,7 +36,7 @@ class Stream:
             queue.put(bytes('ACK', 'utf8'))
             self._server_in_buf.append(data)
 
-        pass
+        ServerThread(ip, port, callback).run()
 
     def get_server_address(self):
         """
@@ -143,3 +144,14 @@ class Stream:
         :return:
         """
         pass
+
+
+class ServerThread(threading.Thread):
+    def __init__(self, ip: str, port: int, callback: Callable) -> None:
+        threading.Thread.__init__(self)
+        self.ip = ip
+        self.port = port
+        self.callback = callback
+
+    def run(self):
+        TCPServer(self.ip, self.port, self.callback).run()
