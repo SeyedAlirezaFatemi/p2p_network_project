@@ -179,21 +179,36 @@
 """
 import socket
 import struct
+from enum import Enum, unique
 from typing import List
 
 from src.tools.parsers import parse_ip, parse_port
 from src.tools.type_repo import Address
 
 VERSION = 1
-REGISTER = 1
-ADVERTISE = 2
-JOIN = 3
-MESSAGE = 4
-REUNION = 5
+
+
+@unique
+class PacketType(Enum):
+    REGISTER = 1
+    ADVERTISE = 2
+    JOIN = 3
+    MESSAGE = 4
+    REUNION = 5
+
+
+class RegisterType(Enum):
+    REGISTER = 'REGISTER'
+    RESPONSE = 'RESPONSE'
+
+
+class AdvertiseType(Enum):
+    REQUEST = 'REQUEST'
+    RESPONSE = 'RESPONSE'
 
 
 class Packet:
-    def __init__(self, version: int, packet_type: int, length: int, source_ip: str, source_port: int,
+    def __init__(self, version: int, packet_type: PacketType, length: int, source_ip: str, source_port: int,
                  body: str):
         """
         The decoded buffer should convert to a new packet.
@@ -221,11 +236,11 @@ class Packet:
         """
         return self.version
 
-    def get_type(self) -> int:
+    def get_type(self) -> PacketType:
         """
 
         :return: Packet type
-        :rtype: int
+        :rtype: PacketType
         """
         return self.packet_type
 
@@ -254,7 +269,8 @@ class Packet:
         """
         ip = [int(part) for part in self.source_ip.split('.')]
         return bytearray(
-            struct.pack(f'!HHLHHHHL{len(self.body)}s', self.version, self.packet_type, self.length, ip[0], ip[1], ip[2],
+            struct.pack(f'!HHLHHHHL{len(self.body)}s', self.version, self.packet_type.value, self.length, ip[0], ip[1],
+                        ip[2],
                         ip[3], self.source_port, bytes(self.body, 'utf-8')))
 
     def get_source_server_ip(self) -> str:
@@ -277,7 +293,7 @@ class Packet:
         """
 
         :return: Server address; The format is like ('192.168.001.001', 05335).
-        :rtype: tuple
+        :rtype: Address
         """
         return self.source_ip, self.source_port
 
@@ -305,7 +321,7 @@ class PacketFactory:
         source_ip = socket.inet_ntoa(header[8:16][1::2])
         source_port = struct.unpack('!I', header[16:20])[0]
         body_chars = struct.unpack(f'{len(body)}s', body)[0].decode('utf-8')
-        return Packet(version, packet_type, length, source_ip, source_port, body_chars)
+        return Packet(version, PacketType(packet_type), length, source_ip, source_port, body_chars)
 
     @staticmethod
     def new_reunion_packet(reunion_type: str, source_address: Address, nodes_array: List[Address]) -> Packet:
@@ -326,58 +342,63 @@ class PacketFactory:
         for node in nodes_array:
             body += (parse_ip(node[0]) + parse_port(node[1]))
         length = len(body)
-        return Packet(VERSION, REUNION, length, source_address[0], source_address[1], body)
+        return Packet(VERSION, PacketType.REUNION, length, source_address[0], source_address[1], body)
 
     @staticmethod
-    def new_advertise_packet(packet_type: str, source_server_address: Address, neighbour: Address = None) -> Packet:
+    def new_advertise_packet(advertise_type: AdvertiseType, source_server_address: Address,
+                             neighbour: Address = None) -> Packet:
         """
-        :param packet_type: Type of Advertise packet
+        :param advertise_type: Type of Advertise packet
         :param source_server_address Server address of the packet sender.
-        :param neighbour: The neighbour for advertise response packet; The format is like ('192.168.001.001', '05335').
+        :param neighbour: The neighbour for advertise response packet; The format is like ('192.168.001.001', 5335).
 
-        :type packet_type: str
-        :type source_server_address: tuple
-        :type neighbour: tuple
+        :type advertise_type: AdvertiseType
+        :type source_server_address: Address
+        :type neighbour: Address
 
         :return New advertise packet.
         :rtype Packet
 
         """
-        pass
+        body = 'REQ' if advertise_type == AdvertiseType.REQUEST else \
+            'RES' + parse_ip(neighbour[0]) + parse_port(neighbour[1])
+        length = len(body)
+        return Packet(VERSION, PacketType.ADVERTISE, length, source_server_address[0], source_server_address[1], body)
 
     @staticmethod
     def new_join_packet(source_server_address: Address) -> Packet:
         """
         :param source_server_address: Server address of the packet sender.
 
-        :type source_server_address: tuple
+        :type source_server_address: Address
 
         :return New join packet.
         :rtype Packet
 
         """
-        pass
+        body, length = 'JOIN', 4
+        return Packet(VERSION, PacketType.JOIN, length, source_server_address[0], source_server_address[1], body)
 
     @staticmethod
-    def new_register_packet(register_type: str, source_server_address: Address,
+    def new_register_packet(register_type: RegisterType, source_server_address: Address,
                             address: Address = None) -> Packet:
         """
         :param register_type: Type of Register packet
         :param source_server_address: Server address of the packet sender.
-        :param address: If 'type' is 'request' we need an address; The format is like ('192.168.001.001', '05335').
+        :param address: If 'type' is 'REQUEST' we need an address; The format is like ('192.168.001.001', 5335).
 
-        :type register_type: str
-        :type source_server_address: tuple
-        :type address: tuple
+        :type register_type: RegisterType
+        :type source_server_address: Address
+        :type address: Address
 
         :return New Register packet.
         :rtype Packet
 
         """
         body = 'REQ' + parse_ip(address[0]) + parse_port(address[1]) \
-            if register_type == 'request' else 'RES' + 'ACK'
+            if register_type == RegisterType.REGISTER else 'RES' + 'ACK'
         length = len(body)
-        return Packet(VERSION, REGISTER, length, source_server_address[0], source_server_address[1], body)
+        return Packet(VERSION, PacketType.REGISTER, length, source_server_address[0], source_server_address[1], body)
 
     @staticmethod
     def new_message_packet(message: str, source_server_address: Address) -> Packet:
@@ -388,10 +409,10 @@ class PacketFactory:
         :param source_server_address: Server address of the packet sender.
 
         :type message: str
-        :type source_server_address: tuple
+        :type source_server_address: Address
 
         :return: New Message packet.
         :rtype: Packet
         """
         length = len(message)
-        return Packet(VERSION, MESSAGE, length, source_server_address[0], source_server_address[1], message)
+        return Packet(VERSION, PacketType.MESSAGE, length, source_server_address[0], source_server_address[1], message)
