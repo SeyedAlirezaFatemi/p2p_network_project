@@ -359,14 +359,14 @@ class PacketFactory:
         pass
 
     @staticmethod
-    def new_register_packet(packet_type: str, source_server_address: Address,
-                            address: Address = (None, None)) -> Packet:
+    def new_register_packet(register_type: str, source_server_address: Address,
+                            address: Address = None) -> Packet:
         """
-        :param packet_type: Type of Register packet
+        :param register_type: Type of Register packet
         :param source_server_address: Server address of the packet sender.
         :param address: If 'type' is 'request' we need an address; The format is like ('192.168.001.001', '05335').
 
-        :type packet_type: str
+        :type register_type: str
         :type source_server_address: tuple
         :type address: tuple
 
@@ -374,7 +374,10 @@ class PacketFactory:
         :rtype Packet
 
         """
-        pass
+        body = 'REQ' + parse_ip(address[0]) + parse_port(address[1]) \
+            if register_type == 'request' else 'RES' + 'ACK'
+        length = len(body)
+        return Packet(VERSION, REGISTER, length, source_server_address[0], source_server_address[1], body)
 
     @staticmethod
     def new_message_packet(message: str, source_server_address: Address) -> Packet:
