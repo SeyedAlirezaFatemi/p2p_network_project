@@ -193,10 +193,12 @@ class Packet:
         """
         self.buf = buf
         self.header = buf[:20]
-        self.body = buf[21:]
-        self.version, self.type, self.length = struct.unpack('!HHI', buf[:7])
-        self.source_ip = socket.inet_ntoa(buf[8:16][1::2])  # Choose odd bytes of the 8 bytes of ip
-        (self.source_port) = struct.unpack('!I', buf[8:16])
+        self.body = buf[20:]
+        self.version, self.type, self.length = struct.unpack('!HHI', buf[:8])
+        # Choose odd bytes of the 8 bytes of ip because ip is 4 bytes
+        self.source_ip = socket.inet_ntoa(buf[8:16][1::2])
+        self.source_port = struct.unpack('!I', buf[16:20])[0]
+        self.body_chars = struct.unpack(f'{len(self.body)}s', self.body)[0].decode('utf-8')
 
     def get_header(self) -> str:
         """
@@ -236,7 +238,7 @@ class Packet:
         :return: Packet body
         :rtype: str
         """
-        pass
+        return self.body_chars
 
     def get_buf(self) -> bytearray:
         """
