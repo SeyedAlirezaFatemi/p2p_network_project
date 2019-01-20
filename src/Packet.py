@@ -198,13 +198,18 @@ class PacketType(Enum):
 
 
 class RegisterType(Enum):
-    REQUEST = 'REQUEST'
-    RESPONSE = 'RESPONSE'
+    REQ = 'REQ'
+    RES = 'RES'
+
+
+class ReunionType(Enum):
+    REQ = 'REQ'
+    RES = 'RES'
 
 
 class AdvertiseType(Enum):
-    REQUEST = 'REQUEST'
-    RESPONSE = 'RESPONSE'
+    REQ = 'REQ'
+    RES = 'RES'
 
 
 class Packet:
@@ -324,7 +329,7 @@ class PacketFactory:
         return Packet(version, PacketType(packet_type), length, source_ip, source_port, body_chars)
 
     @staticmethod
-    def new_reunion_packet(reunion_type: str, source_address: Address, nodes_array: List[Address]) -> Packet:
+    def new_reunion_packet(reunion_type: ReunionType, source_address: Address, nodes_array: List[Address]) -> Packet:
         """
         :param reunion_type: Reunion Hello (REQ) or Reunion Hello Back (RES)
         :param source_address: IP/Port address of the packet sender.
@@ -338,7 +343,7 @@ class PacketFactory:
         :rtype Packet
         """
         n_entries = len(nodes_array)
-        body = reunion_type + str(n_entries)
+        body = reunion_type.value + str(n_entries).zfill(2)
         for node in nodes_array:
             body += (parse_ip(node[0]) + parse_port(node[1]))
         length = len(body)
@@ -360,7 +365,7 @@ class PacketFactory:
         :rtype Packet
 
         """
-        body = 'REQ' if advertise_type == AdvertiseType.REQUEST else \
+        body = 'REQ' if advertise_type == AdvertiseType.REQ else \
             'RES' + parse_ip(neighbour[0]) + parse_port(neighbour[1])
         length = len(body)
         return Packet(VERSION, PacketType.ADVERTISE, length, source_server_address[0], source_server_address[1], body)
@@ -396,7 +401,7 @@ class PacketFactory:
 
         """
         body = 'REQ' + parse_ip(address[0]) + parse_port(address[1]) \
-            if register_type == RegisterType.REQUEST else 'RES' + 'ACK'
+            if register_type == RegisterType.REQ else 'RES' + 'ACK'
         length = len(body)
         return Packet(VERSION, PacketType.REGISTER, length, source_server_address[0], source_server_address[1], body)
 

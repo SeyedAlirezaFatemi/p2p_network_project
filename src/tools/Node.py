@@ -4,8 +4,6 @@ from src.tools.simpletcp.clientsocket import ClientSocket
 from src.tools.type_repo import Address
 
 
-# TODO: Something is wrong or at least not finished
-
 class Node:
     def __init__(self, server_address: Address, set_register: bool = False):
         """
@@ -42,7 +40,9 @@ class Node:
         """
         for message in self.out_buff:
             response = self.client.send(message.get_buf())
-            # TODO: there is a problem if response is not b'ACK'
+            if response != b'ACK':
+                # TODO: Something went wrong
+                pass
         self.out_buff.clear()
 
     def add_message_to_out_buff(self, message: Packet):

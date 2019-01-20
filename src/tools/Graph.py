@@ -2,21 +2,25 @@
 from typing import List, Optional
 
 from src.tools.type_repo import Address
+from tools.logger import log
+from tools.parsers import parse_ip
 
 
 class GraphNode:
     def __init__(self, address: Address):
         """
         :param address: (ip, port)
-        :type address: tuple
+        :type address: Address
         """
         self.address = address
         self.parent = None
         self.children = []
         self.level = None
+        self.is_alive = False
 
-    def set_parent(self, parent) -> None:
+    def set_parent(self, parent: 'GraphNode') -> None:
         self.parent = parent
+        self.is_alive = True
 
     def set_address(self, new_address: Address) -> None:
         self.address = new_address
@@ -27,9 +31,14 @@ class GraphNode:
     def __reset(self) -> None:
         self.parent = None
         self.children = []
+        self.is_alive = False
 
-    def add_child(self, child) -> None:
-        self.children.append(child)
+    def add_child(self, child: 'GraphNode') -> None:
+        if len(self.children) < 2:
+            self.children.append(child)
+        else:
+            # TODO: Something went wrong
+            pass
 
     def __eq__(self, other) -> bool:
         return self.address == other.address
@@ -53,7 +62,7 @@ class NetworkGraph:
         root.alive = True
         self.nodes = [root]
 
-    def find_live_node(self, sender: Address) -> Optional[GraphNode]:
+    def find_live_node(self, sender: Address) -> Optional[Address]:
         """
         Here we should find a neighbour for the sender.
         Best neighbour is the node who is nearest the root and has not more than one child.
@@ -89,10 +98,11 @@ class NetworkGraph:
                     visited[child.address] = True
         sender_node = self.find_node(sender)  # For the warning
         for node in graph[::-1]:
-            if node.level == 8 or len(node.children) == 2 or (sender_node and check_is_parent(node, sender_node)):
+            if node.level == 8 or len(node.children) == 2 or (not node.is_alive) or (
+                    sender_node and check_is_parent(node, sender_node)):
                 continue
-            return node
-        # No node available if we reach here!
+            return node.address
+        log('Network is full.')
 
     def find_node(self, node_address: Address) -> Optional[GraphNode]:
         for node in self.nodes:
@@ -100,10 +110,10 @@ class NetworkGraph:
                 return node
 
     def turn_on_node(self, node_address: Address) -> None:
-        pass
+        self.find_node(node_address).is_alive = True
 
     def turn_off_node(self, node_address: Address) -> None:
-        pass
+        self.find_node(node_address).is_alive = False
 
     def remove_node(self, node_address: Address) -> None:
         self.nodes.remove(self.find_node(node_address))
@@ -127,7 +137,7 @@ class NetworkGraph:
 
         :return:
         """
-        new_node = GraphNode((ip, port))
+        new_node = GraphNode((parse_ip(ip), port))
         father_node = self.find_node(father_address)
         new_node.set_parent(father_node)
         if father_node == self.root:

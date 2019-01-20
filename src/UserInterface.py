@@ -1,10 +1,8 @@
 import threading
-import time
 
 
 class UserInterface(threading.Thread):
     buffer = []
-
 
     def run(self):
         """
