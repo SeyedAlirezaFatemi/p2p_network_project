@@ -1,6 +1,7 @@
 import threading
 from typing import Callable, Optional
 
+from src.Packet import Packet
 from src.tools.Node import Node
 from src.tools.parsers import parse_ip
 from src.tools.simpletcp.tcpserver import TCPServer
@@ -87,7 +88,7 @@ class Stream:
         self.nodes.remove(node)
         node.close()
 
-    def get_node_by_server(self, ip: str, port: int) -> Optional[Node]:
+    def get_node_by_address(self, ip: str, port: int) -> Optional[Node]:
         """
 
         Will find the node that has IP/Port address of input.
@@ -105,7 +106,7 @@ class Stream:
             if node.get_server_address() == (parse_ip(ip), port):
                 return node
 
-    def add_message_to_out_buff(self, address: Address, message: str):
+    def add_message_to_out_buff(self, address: Address, message: Packet):
         """
         In this function, we will add the message to the output buffer of the node that has the input address.
         Later we should use send_out_buf_messages to send these buffers into their sockets.
@@ -118,7 +119,7 @@ class Stream:
 
         :return:
         """
-        node = self.get_node_by_server(address[0], address[1])
+        node = self.get_node_by_address(address[0], address[1])
         if node:
             node.add_message_to_out_buff(message)
 
@@ -144,7 +145,11 @@ class Stream:
 
         :return:
         """
-        pass
+        try:
+            node.send_message()
+        except:
+            # TODO: Complete this
+            pass
 
     def send_out_buf_messages(self, only_register: bool = False):
         """
@@ -152,7 +157,8 @@ class Stream:
 
         :return:
         """
-        pass
+        for node in self.nodes:
+            self.send_messages_to_node(node)
 
 
 class ServerThread(threading.Thread):

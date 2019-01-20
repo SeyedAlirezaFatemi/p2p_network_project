@@ -1,3 +1,4 @@
+from src.Packet import Packet
 from src.tools.parsers import parse_ip
 from src.tools.simpletcp.clientsocket import ClientSocket
 from src.tools.type_repo import Address
@@ -6,7 +7,7 @@ from src.tools.type_repo import Address
 # TODO: Something is wrong or at least not finished
 
 class Node:
-    def __init__(self, server_address: Address, set_root: bool = False, set_register: bool = False):
+    def __init__(self, server_address: Address, set_register: bool = False):
         """
         The Node object constructor.
 
@@ -18,7 +19,6 @@ class Node:
                an exception and we should detach this Node and clear its output buffer.
 
         :param server_address:
-        :param set_root:
         :param set_register:
         """
         self.server_ip = parse_ip(server_address[0])
@@ -27,7 +27,6 @@ class Node:
         print("Server Address: ", server_address)
 
         self.out_buff = []
-        self.is_root = set_root
         self.is_register = set_register
 
         try:
@@ -42,10 +41,11 @@ class Node:
         :return:
         """
         for message in self.out_buff:
-            self.client.send(message)
+            response = self.client.send(message.get_buf())
+            # TODO: there is a problem if response is not b'ACK'
         self.out_buff.clear()
 
-    def add_message_to_out_buff(self, message):
+    def add_message_to_out_buff(self, message: Packet):
         """
         Here we will add a new message to the server out_buff, then in 'send_message' will send them.
 

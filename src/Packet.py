@@ -198,7 +198,7 @@ class PacketType(Enum):
 
 
 class RegisterType(Enum):
-    REGISTER = 'REGISTER'
+    REQUEST = 'REQUEST'
     RESPONSE = 'RESPONSE'
 
 
@@ -396,7 +396,7 @@ class PacketFactory:
 
         """
         body = 'REQ' + parse_ip(address[0]) + parse_port(address[1]) \
-            if register_type == RegisterType.REGISTER else 'RES' + 'ACK'
+            if register_type == RegisterType.REQUEST else 'RES' + 'ACK'
         length = len(body)
         return Packet(VERSION, PacketType.REGISTER, length, source_server_address[0], source_server_address[1], body)
 

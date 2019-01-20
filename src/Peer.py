@@ -1,10 +1,15 @@
+from typing import Callable
+
 from src.Stream import Stream
-from src.Packet import Packet, PacketFactory
+from src.Packet import Packet, PacketFactory, PacketType, RegisterType
 from src.UserInterface import UserInterface
 from src.tools.SemiNode import SemiNode
 from src.tools.Graph import NetworkGraph, GraphNode
 import time
 import threading
+
+from src.tools.parsers import parse_ip
+from src.tools.type_repo import Address
 
 """
     Peer is our main object in this project.
@@ -15,7 +20,7 @@ import threading
 
 
 class Peer:
-    def __init__(self, server_ip, server_port, is_root=False, root_address=None):
+    def __init__(self, server_ip:str, server_port:int, is_root:bool=False, root_address:Address=None):
         """
         The Peer object constructor.
 
@@ -40,9 +45,28 @@ class Peer:
         :type server_ip: str
         :type server_port: int
         :type is_root: bool
-        :type root_address: tuple
+        :type root_address: Address
         """
-        pass
+        self.server_ip = parse_ip(server_ip)
+        self.server_port = server_port
+        self.address = (self.server_ip,self.server_port)
+        self.is_root = is_root
+        self.root_address = root_address
+        self.union_daemon = UnionThread(self.run_reunion_daemon)
+
+        self.stream = Stream(server_ip, server_port)
+        self.user_interface = UserInterface()
+        # TODO: hint 4
+        if is_root:
+            self.graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
+        else:  # client
+            self.__register()
+
+
+    def __register(self):
+        self.stream.add_node(self.root_address, set_register_connection=True)
+        register_packet = PacketFactory.new_register_packet(RegisterType.REQUEST, self.address, self.root_address)
+        self.stream.add_message_to_out_buff(self.root_address, register_packet)
 
     def start_user_interface(self):
         """
@@ -50,7 +74,7 @@ class Peer:
 
         :return:
         """
-        pass
+        self.user_interface.run()
 
     def handle_user_interface_buffer(self):
         """
@@ -85,7 +109,12 @@ class Peer:
 
         :return:
         """
-        pass
+        in_buff = self.stream.read_in_buf()
+        for message in in_buff:
+            self.handle_packet(PacketFactory.parse_buffer(message))
+        self.handle_user_interface_buffer()
+        self.stream.send_out_buf_messages()
+
 
     def run_reunion_daemon(self):
         """
@@ -142,7 +171,23 @@ class Peer:
         :type packet Packet
 
         """
-        pass
+        if not self.__validate_received_packet(packet):
+            return
+        packet_type = packet.get_type()
+        if packet_type == PacketType.MESSAGE:
+            self.send_broadcast_packet(packet)
+        elif packet_type == PacketType.ADVERTISE:
+            self.__handle_advertise_packet(packet)
+        elif packet_type == PacketType.JOIN:
+            self.__handle_join_packet(packet)
+        elif packet_type == PacketType.REGISTER:
+            self.__handle_register_packet(packet)
+        elif packet_type == PacketType.REUNION:
+            self.__handle_reunion_packet(packet)
+
+    def __validate_received_packet(self,packet:Packet)->bool:
+        # TODO: implement
+        return True
 
     def __check_registered(self, source_address):
         """
@@ -283,3 +328,13 @@ class Peer:
         :return: The specified neighbour for the sender; The format is like ('192.168.001.001', '05335').
         """
         pass
+
+
+class UnionThread(threading.Thread):
+    def __init__(self, handler: Callable) -> None:
+        threading.Thread.__init__(self)
+        self.handler = handler
+
+    def run(self):
+        self.handler()
+
