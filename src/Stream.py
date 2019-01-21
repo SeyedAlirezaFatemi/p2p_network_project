@@ -158,7 +158,11 @@ class Stream:
         :return:
         """
         for node in self.nodes:
-            self.send_messages_to_node(node)
+            if only_register:
+                if node.is_register:
+                    self.send_messages_to_node(node)
+            else:
+                self.send_messages_to_node(node)
 
 
 class ServerThread(threading.Thread):
