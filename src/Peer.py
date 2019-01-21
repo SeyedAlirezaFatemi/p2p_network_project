@@ -69,13 +69,6 @@ class Peer:
         if is_root:
             self.graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
             self.reunion_daemon.run()
-        else:  # client
-            self.__register()
-
-    def __register(self):
-        self.stream.add_node(self.root_address, set_register_connection=True)
-        register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address, self.root_address)
-        self.stream.add_message_to_out_buff(self.root_address, register_packet)
 
     def start_user_interface(self):
         """
@@ -98,7 +91,37 @@ class Peer:
             2. Don't forget to clear our UserInterface buffer.
         :return:
         """
-        pass
+        user_interface_buffer = self.user_interface.buffer
+        for command in user_interface_buffer:
+            if command == 'Register':
+                self.__handle_register_command()
+            elif command == 'Advertise':
+                self.__handle_advertise_command()
+            elif command.startswith('SendMessage'):
+                self.__handle_message_command(command)
+            else:
+                log('Are you on drugs?')
+        self.user_interface.clear_buffer()
+
+    def __handle_register_command(self) -> None:
+        self.__register()
+
+    def __register(self):
+        self.stream.add_node(self.root_address, set_register_connection=True)
+        register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address, self.root_address)
+        self.stream.add_message_to_out_buff(self.root_address, register_packet)
+        log('Register packet added to out buff.')
+
+    def __handle_advertise_command(self) -> None:
+        advertise_packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
+        self.stream.add_message_to_out_buff(self.root_address, advertise_packet)
+        log('Advertise packet added to out buff.')
+
+    def __handle_message_command(self, command: str) -> None:
+        message = command[12:]
+        message_packet = PacketFactory.new_message_packet(message, self.address)
+        self.stream.add_message_to_out_buff(self.parent_address, message_packet)
+        log('Message packet added to out buff.')
 
     def run(self):
         """
@@ -199,16 +222,18 @@ class Peer:
         # TODO: implement
         return True
 
-    def __check_registered(self, source_address):
+    def __check_registered(self, source_address: Address) -> bool:
         """
         If the Peer is the root of the network we need to find that is a node registered or not.
 
         :param source_address: Unknown IP/Port address.
-        :type source_address: tuple
+        :type source_address: Address
 
         :return:
         """
-        pass
+        source_ip, source_port = source_address
+        source_node = SemiNode(source_ip, source_port)
+        return source_node in self.registered
 
     def __handle_advertise_packet(self, packet: Packet):
         """
@@ -309,9 +334,6 @@ class Peer:
         :return:
         """
         # TODO: Implement this.
-        pass
-
-    def __is_from_known_source(self, packet: Packet) -> bool:
         pass
 
     def __handle_reunion_packet(self, packet: Packet):
