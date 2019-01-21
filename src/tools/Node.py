@@ -1,3 +1,5 @@
+from typing import List
+
 from src.Packet import Packet
 from src.tools.parsers import parse_ip
 from src.tools.simpletcp.clientsocket import ClientSocket
@@ -6,7 +8,7 @@ from tools.logger import log
 
 
 class Node:
-    def __init__(self, server_address: Address, set_register: bool = False):
+    def __init__(self, server_address: Address, set_register: bool = False) -> None:
         """
         The Node object constructor.
 
@@ -23,30 +25,29 @@ class Node:
         self.server_ip = parse_ip(server_address[0])
         self.server_port = server_address[1]
 
-        log(f"Server Address: {server_address}")
+        log(f"Node({server_address}): Initialized.")
 
-        self.out_buff = []
+        self.out_buff: List[Packet] = []
         self.is_register = set_register
 
         try:
-            self.client = ClientSocket(server_address[0], server_address[1])
+            self.client = ClientSocket(self.server_ip, self.server_port)
         except:
             pass
 
-    def send_message(self):
+    def send_message(self) -> None:
         """
         Final function to send buffer to the client's socket.
 
         :return:
         """
-        for message in self.out_buff:
-            response = self.client.send(message.get_buf())
+        for packet in self.out_buff:
+            response = self.client.send(packet.get_buf())
             if response != b'ACK':
-                # TODO: Something went wrong
-                pass
+                log(f"Node({self.get_server_address()}): Message of type {packet.get_type()} not ACKed.")
         self.out_buff.clear()
 
-    def add_message_to_out_buff(self, message: Packet):
+    def add_message_to_out_buff(self, message: Packet) -> None:
         """
         Here we will add a new message to the server out_buff, then in 'send_message' will send them.
 
@@ -55,7 +56,7 @@ class Node:
         """
         self.out_buff.append(message)
 
-    def close(self):
+    def close(self) -> None:
         """
         Closing client's object.
         :return:
