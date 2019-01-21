@@ -338,7 +338,7 @@ class Peer:
         :return:
         """
         reunion_type = self.__identify_reunion_type(packet)
-        if self.is_root:
+        if self.is_root and reunion_type == ReunionType.REQ:
             self.__update_last_reunion(packet)
             self.__respond_to_reunion(packet)
         else:
@@ -351,11 +351,11 @@ class Peer:
         pass
 
     def __respond_to_reunion(self, packet: Packet):
-        reversed_addresses = self.__reverse_address_reuinion_packet(packet)
+        reversed_addresses = self.__reverse_reunion_addresses_on_respond(packet)
         response_packet = PacketFactory.new_reunion_packet(ReunionType.RES, self.address, reversed_addresses)
         self.stream.add_message_to_out_buff(reversed_addresses[0], response_packet)
 
-    def __reverse_address_reuinion_packet(self, packet: Packet) -> List[Address]:
+    def __reverse_reunion_addresses_on_respond(self, packet: Packet) -> List[Address]:
         body = packet.get_body()
         n_entries = int(body[3:5])
         addresses = []
@@ -373,7 +373,15 @@ class Peer:
         return ReunionType.REQ
 
     def __pass_reunion_hello(self, packet: Packet):
-        pass
+        new_addresses = self.__format_reunion_addresses_on_pass(packet)
+        request_packet = PacketFactory.new_reunion_packet(ReunionType.REQ, packet.get_source_server_address(),
+                                                          new_addresses)
+        self.stream.add_message_to_out_buff(self.parent_address, request_packet)
+
+    def __format_reunion_addresses_on_pass(self, packet: Packet) -> List[Address]:
+        addresses = packet.get_addresses()
+        addresses.append(self.address)
+        return addresses
 
     def __handle_reunion_hello_back(self, packet: Packet):
         if packet.get_source_server_address() == self.address:
@@ -383,7 +391,10 @@ class Peer:
             self.__pass_reunion_hello_back(packet)
 
     def __pass_reunion_hello_back(self, packet: Packet):
-        pass
+        addresses = packet.get_addresses()[1:]
+        next_node = addresses[0]
+        passed_packet = PacketFactory.new_reunion_packet(ReunionType.RES, packet.get_source_server_address(), addresses)
+        self.stream.add_message_to_out_buff(next_node, passed_packet)
 
     def __handle_join_packet(self, packet: Packet):
         """

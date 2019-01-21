@@ -302,6 +302,21 @@ class Packet:
         """
         return self.source_ip, self.source_port
 
+    def get_addresses(self) -> List[Address]:
+        body = self.get_body()
+        n_entries = int(body[3:5])
+        addresses = []
+        for i in range(n_entries):
+            ip_start = 5 + 20 * i
+            ip_end = ip_start + 15
+            port_start = 20 + 20 * i
+            port_end = port_start + 5
+            addresses.append((body[ip_start:ip_end], int(body[port_start:port_end])))
+        return addresses
+
+    def get_n_entries(self) -> int:
+        return int(self.get_body()[3:5])
+
 
 class PacketFactory:
     """
