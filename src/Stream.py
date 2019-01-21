@@ -1,5 +1,5 @@
 import threading
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from src.Packet import Packet
 from src.tools.Node import Node
@@ -25,8 +25,8 @@ class Stream:
         self.ip = parse_ip(ip)
         self.port = port
 
-        self.nodes = []
-        self._server_in_buf = []
+        self.nodes: List[Node] = []
+        self._server_in_buf: List[bytearray] = []
 
         def callback(address, queue, data):
             """
@@ -50,7 +50,7 @@ class Stream:
         """
         return self.ip, self.port
 
-    def clear_in_buff(self):
+    def clear_in_buff(self) -> None:
         """
         Discard any data in TCPServer input buffer.
 
@@ -126,7 +126,7 @@ class Stream:
         if node:
             node.add_message_to_out_buff(message)
 
-    def read_in_buf(self):
+    def read_in_buf(self) -> List[bytearray]:
         """
         Only returns the input buffer of our TCPServer.
 
