@@ -25,7 +25,7 @@ class ReunionMode(Enum):
 
 
 class Peer:
-    def __init__(self, server_ip: str, server_port: int, is_root: bool = False, root_address: Address = None):
+    def __init__(self, server_ip: str, server_port: int, is_root: bool = False, root_address: Address = None) -> None:
         """
         The Peer object constructor.
 
@@ -73,7 +73,7 @@ class Peer:
             self.network_graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
             self.reunion_daemon.run()
 
-    def start_user_interface(self):
+    def start_user_interface(self) -> None:
         """
         For starting UserInterface thread.
 
@@ -81,7 +81,7 @@ class Peer:
         """
         self.user_interface.run()
 
-    def handle_user_interface_buffer(self):
+    def handle_user_interface_buffer(self) -> None:
         """
         In every interval, we should parse user command that buffered from our UserInterface.
         All of the valid commands are listed below:
@@ -109,7 +109,7 @@ class Peer:
     def __handle_register_command(self) -> None:
         self.__register()
 
-    def __register(self):
+    def __register(self) -> None:
         self.stream.add_node(self.root_address, set_register_connection=True)
         register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address, self.root_address)
         self.stream.add_message_to_out_buff(self.root_address, register_packet, want_register=True)
@@ -122,9 +122,8 @@ class Peer:
 
     def __handle_message_command(self, command: str) -> None:
         message = command[12:]
-        message_packet = PacketFactory.new_message_packet(message, self.address)
-        self.stream.add_message_to_out_buff(self.parent_address, message_packet)
-        log('Message packet added to out buff.')
+        broadcast_packet = PacketFactory.new_message_packet(message, self.address)
+        self.send_broadcast_packet(broadcast_packet)
 
     def run(self):
         """
@@ -181,7 +180,7 @@ class Peer:
         """
         pass
 
-    def send_broadcast_packet(self, broadcast_packet):
+    def send_broadcast_packet(self, broadcast_packet: Packet) -> None:
         """
 
         For setting broadcast packets buffer into Nodes out_buff.
@@ -194,7 +193,9 @@ class Peer:
 
         :return:
         """
-        pass
+        for neighbor_address in [*self.children_addresses, self.parent_address]:
+            self.stream.add_message_to_out_buff(neighbor_address, broadcast_packet)
+        log('Message packet added to out buffs.')
 
     def handle_packet(self, packet):
         """
@@ -299,7 +300,7 @@ class Peer:
             sender_address = packet.get_source_server_address()
             self.stream.add_node(sender_address, set_register_connection=True)
             register_response_packet = PacketFactory.new_register_packet(RegisterType.RES, self.address)
-            self.stream.add_message_to_out_buff(sender_address, register_response_packet,want_register=True)
+            self.stream.add_message_to_out_buff(sender_address, register_response_packet, want_register=True)
         elif register_type == RegisterType.RES:
             log('Register request ACKed by root. You are now registered.')
 
