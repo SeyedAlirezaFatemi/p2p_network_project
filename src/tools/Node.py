@@ -68,3 +68,7 @@ class Node:
         :rtype: Address
         """
         return self.server_ip, self.server_port
+
+    def __eq__(self, other) -> bool:
+        return self.server_ip == other.server_ip and self.server_port == other.server_port \
+               and self.is_register == other.is_register

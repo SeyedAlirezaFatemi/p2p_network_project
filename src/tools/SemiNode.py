@@ -1,5 +1,3 @@
-from typing import Any
-
 from src.tools.parsers import parse_ip
 from tools.type_repo import Address
 
@@ -18,5 +16,5 @@ class SemiNode:
     def get_address(self) -> Address:
         return self.ip, self.port
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other) -> bool:
         return self.ip == other.ip and self.port == other.port
