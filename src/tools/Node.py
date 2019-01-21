@@ -2,6 +2,7 @@ from src.Packet import Packet
 from src.tools.parsers import parse_ip
 from src.tools.simpletcp.clientsocket import ClientSocket
 from src.tools.type_repo import Address
+from tools.logger import log
 
 
 class Node:
@@ -22,7 +23,7 @@ class Node:
         self.server_ip = parse_ip(server_address[0])
         self.server_port = server_address[1]
 
-        print("Server Address: ", server_address)
+        log(f"Server Address: {server_address}")
 
         self.out_buff = []
         self.is_register = set_register

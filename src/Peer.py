@@ -15,8 +15,7 @@ from tools.logger import log
 """
     Peer is our main object in this project.
     In this network Peers will connect together to make a tree graph.
-    This network is not completely decentralised but will show you some real-world challenges in Peer to Peer networks.
-    
+    This network is not completely decentralised but will show you some real-world challenges in Peer to Peer networks.    
 """
 
 
@@ -66,8 +65,12 @@ class Peer:
         self.stream = Stream(server_ip, server_port)
         self.user_interface = UserInterface()
         # TODO: hint 4
+
+        self.last_hello_back_time = None  # When you received your last hello back from root
+        self.last_hello_time = None  # When you sent your last hello to root
+
         if is_root:
-            self.graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
+            self.network_graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
             self.reunion_daemon.run()
 
     def start_user_interface(self):
@@ -144,7 +147,9 @@ class Peer:
         while True:
             in_buff = self.stream.read_in_buf()
             for message in in_buff:
-                self.handle_packet(PacketFactory.parse_buffer(message))
+                packet = PacketFactory.parse_buffer(message)
+                self.handle_packet(packet)
+            self.stream.clear_in_buff()
             self.handle_user_interface_buffer()
             self.stream.send_out_buf_messages()
             time.sleep(2)
@@ -208,7 +213,7 @@ class Peer:
             return
         packet_type = packet.get_type()
         if packet_type == PacketType.MESSAGE:
-            self.send_broadcast_packet(packet)
+            self.__handle_message_packet(packet)
         elif packet_type == PacketType.ADVERTISE:
             self.__handle_advertise_packet(packet)
         elif packet_type == PacketType.JOIN:
@@ -370,7 +375,8 @@ class Peer:
                 self.__handle_reunion_hello_back(packet)
 
     def __update_last_reunion(self, packet: Packet):
-        pass
+        sender_address = packet.get_source_server_address()
+        self.network_graph.keep_alive(sender_address)
 
     def __respond_to_reunion(self, packet: Packet):
         reversed_addresses = packet.get_addresses_in_reverse()
@@ -395,9 +401,9 @@ class Peer:
         return addresses
 
     def __handle_reunion_hello_back(self, packet: Packet):
-        if packet.get_source_server_address() == self.address:
-            # TODO: It's our packet!
-            pass
+        if packet.get_addresses()[0] == self.address:
+            # It's our hello back!
+            self.last_hello_back_time = time.time()
         else:
             self.__pass_reunion_hello_back(packet)
 
@@ -435,7 +441,7 @@ class Peer:
         :return: The specified neighbour for the sender; The format is like ('192.168.001.001', 5335).
         """
         if self.is_root:
-            return self.graph.find_live_node(sender)
+            return self.network_graph.find_live_node(sender)
 
 
 class ReunionThread(threading.Thread):

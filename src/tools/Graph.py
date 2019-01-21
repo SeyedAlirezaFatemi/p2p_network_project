@@ -1,4 +1,4 @@
-# import time
+import time
 from typing import List, Optional
 
 from src.tools.type_repo import Address
@@ -8,19 +8,20 @@ from tools.parsers import parse_ip
 
 class GraphNode:
     def __init__(self, address: Address):
-        """
-        :param address: (ip, port)
-        :type address: Address
-        """
         self.address = address
         self.parent = None
         self.children = []
         self.level = None
         self.is_alive = False
+        self.last_hello = None
 
     def set_parent(self, parent: 'GraphNode') -> None:
         self.parent = parent
+        self.keep_alive()
+
+    def keep_alive(self):
         self.is_alive = True
+        self.last_hello = time.time()
 
     def set_address(self, new_address: Address) -> None:
         self.address = new_address
@@ -146,3 +147,7 @@ class NetworkGraph:
             new_node.set_level(father_node.level + 1)
         father_node.add_child(new_node)
         self.nodes.append(new_node)
+
+    def keep_alive(self, address: Address) -> None:
+        graph_node = self.find_node(address)
+        graph_node.keep_alive()
