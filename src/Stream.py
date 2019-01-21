@@ -88,7 +88,7 @@ class Stream:
         self.nodes.remove(node)
         node.close()
 
-    def get_node_by_address(self, ip: str, port: int) -> Optional[Node]:
+    def get_node_by_address(self, ip: str, port: int, want_register: bool = False) -> Optional[Node]:
         """
 
         Will find the node that has IP/Port address of input.
@@ -98,28 +98,31 @@ class Stream:
 
         :param ip: input address IP
         :param port: input address Port
+        :param want_register: do you want a register node?
 
         :return: The node that input address.
         :rtype: Node
         """
         for node in self.nodes:
-            if node.get_server_address() == (parse_ip(ip), port):
+            if node.get_server_address() == (parse_ip(ip), port) and node.is_register == want_register:
                 return node
 
-    def add_message_to_out_buff(self, address: Address, message: Packet):
+    def add_message_to_out_buff(self, address: Address, message: Packet, want_register: bool = False):
         """
         In this function, we will add the message to the output buffer of the node that has the input address.
         Later we should use send_out_buf_messages to send these buffers into their sockets.
 
         :param address: Node address that we want to send the message
         :param message: Message we want to send
+        :param want_register: do you want a register node?
 
         Warnings:
             1. Check whether the node address is in our nodes or not.
 
         :return:
         """
-        node = self.get_node_by_address(address[0], address[1])
+        ip, port = address
+        node = self.get_node_by_address(ip, port, want_register)
         if node:
             node.add_message_to_out_buff(message)
 

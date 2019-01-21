@@ -112,12 +112,12 @@ class Peer:
     def __register(self):
         self.stream.add_node(self.root_address, set_register_connection=True)
         register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address, self.root_address)
-        self.stream.add_message_to_out_buff(self.root_address, register_packet)
+        self.stream.add_message_to_out_buff(self.root_address, register_packet, want_register=True)
         log('Register packet added to out buff.')
 
     def __handle_advertise_command(self) -> None:
         advertise_packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
-        self.stream.add_message_to_out_buff(self.root_address, advertise_packet)
+        self.stream.add_message_to_out_buff(self.root_address, advertise_packet, want_register=True)
         log('Advertise packet added to out buff.')
 
     def __handle_message_command(self, command: str) -> None:
@@ -299,7 +299,7 @@ class Peer:
             sender_address = packet.get_source_server_address()
             self.stream.add_node(sender_address, set_register_connection=True)
             register_response_packet = PacketFactory.new_register_packet(RegisterType.RES, self.address)
-            self.stream.add_message_to_out_buff(sender_address, register_response_packet)
+            self.stream.add_message_to_out_buff(sender_address, register_response_packet,want_register=True)
         elif register_type == RegisterType.RES:
             log('Register request ACKed by root. You are now registered.')
 
@@ -338,8 +338,12 @@ class Peer:
 
         :return:
         """
-        # TODO: Implement this.
-        pass
+        sender_address = packet.get_source_server_address()
+        updated_packet = PacketFactory.new_message_packet(packet.get_body(), self.address)
+        if self.__check_neighbour(sender_address):  # From known source
+            for neighbor_address in [*self.children_addresses, self.parent_address]:
+                if neighbor_address != sender_address:
+                    self.stream.add_message_to_out_buff(neighbor_address, updated_packet)
 
     def __handle_reunion_packet(self, packet: Packet):
         """
