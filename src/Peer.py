@@ -351,21 +351,10 @@ class Peer:
         pass
 
     def __respond_to_reunion(self, packet: Packet):
-        reversed_addresses = self.__reverse_reunion_addresses_on_respond(packet)
+        reversed_addresses = packet.get_addresses_in_reverse()
         response_packet = PacketFactory.new_reunion_packet(ReunionType.RES, self.address, reversed_addresses)
-        self.stream.add_message_to_out_buff(reversed_addresses[0], response_packet)
-
-    def __reverse_reunion_addresses_on_respond(self, packet: Packet) -> List[Address]:
-        body = packet.get_body()
-        n_entries = int(body[3:5])
-        addresses = []
-        for i in range(n_entries - 1, 0, -1):
-            ip_start = 5 + 20 * i
-            ip_end = ip_start + 15
-            port_start = 20 + 20 * i
-            port_end = port_start + 5
-            addresses.append((body[ip_start:ip_end], int(body[port_start:port_end])))
-        return addresses
+        next_node_address = reversed_addresses[0]
+        self.stream.add_message_to_out_buff(next_node_address, response_packet)
 
     def __identify_reunion_type(self, packet: Packet) -> ReunionType:
         if packet.get_source_server_address() == self.parent_address:

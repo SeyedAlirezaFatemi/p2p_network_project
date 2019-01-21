@@ -306,9 +306,23 @@ class Packet:
         if self.get_type() != PacketType.REUNION:
             return None
         body = self.get_body()
-        n_entries = int(body[3:5])
+        n_entries = self.get_n_entries()
         addresses = []
         for i in range(n_entries):
+            ip_start = 5 + 20 * i
+            ip_end = ip_start + 15
+            port_start = 20 + 20 * i
+            port_end = port_start + 5
+            addresses.append((body[ip_start:ip_end], int(body[port_start:port_end])))
+        return addresses
+
+    def get_addresses_in_reverse(self) -> Optional[List[Address]]:
+        if self.get_type() != PacketType.REUNION:
+            return None
+        body = self.get_body()
+        n_entries = self.get_n_entries()
+        addresses = []
+        for i in range(n_entries - 1, 0, -1):
             ip_start = 5 + 20 * i
             ip_end = ip_start + 15
             port_start = 20 + 20 * i
@@ -348,25 +362,27 @@ class PacketFactory:
         return Packet(version, PacketType(packet_type), length, source_ip, source_port, body_chars)
 
     @staticmethod
-    def new_reunion_packet(reunion_type: ReunionType, source_address: Address, nodes_array: List[Address]) -> Packet:
+    def new_reunion_packet(reunion_type: ReunionType, source_address: Address, addresses: List[Address]) -> Packet:
         """
         :param reunion_type: Reunion Hello (REQ) or Reunion Hello Back (RES)
         :param source_address: IP/Port address of the packet sender.
-        :param nodes_array: [(ip0, port0), (ip1, port1), ...] It is the path to the 'destination'.
+        :param addresses: [(ip0, port0), (ip1, port1), ...] It is the path to the 'destination'.
 
         :type reunion_type: str
-        :type source_address: tuple
-        :type nodes_array: list
+        :type source_address: Address
+        :type addresses: List[Address]
 
         :return New reunion packet.
         :rtype Packet
         """
-        n_entries = len(nodes_array)
+        n_entries = len(addresses)
         body = reunion_type.value + str(n_entries).zfill(2)
-        for node in nodes_array:
-            body += (parse_ip(node[0]) + parse_port(node[1]))
+        for address in addresses:
+            ip, port = address
+            body += (parse_ip(ip) + parse_port(port))
         length = len(body)
-        return Packet(VERSION, PacketType.REUNION, length, source_address[0], source_address[1], body)
+        source_ip, source_port = source_address
+        return Packet(VERSION, PacketType.REUNION, length, source_ip, source_port, body)
 
     @staticmethod
     def new_advertise_packet(advertise_type: AdvertiseType, source_server_address: Address,
