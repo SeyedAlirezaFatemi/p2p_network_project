@@ -18,9 +18,11 @@ from tools.logger import log
     This network is not completely decentralised but will show you some real-world challenges in Peer to Peer networks.    
 """
 
+MAX_PENDING_TIME = 36;
+
 
 class ReunionMode(Enum):
-    PENDING = 'PENDING'
+    FAILED = 'FAILED'
     ACCEPTANCE = 'ACCEPTANCE'
 
 
@@ -58,6 +60,7 @@ class Peer:
         self.is_root = is_root
         self.root_address = root_address
         self.reunion_daemon = ReunionThread(self.run_reunion_daemon)
+        self.reunion_mode = ReunionMode.ACCEPTANCE
 
         self.registered = []
         self.parent_address = None
@@ -144,13 +147,14 @@ class Peer:
         :return:
         """
         while True:
+
             in_buff = self.stream.read_in_buf()
             for message in in_buff:
                 packet = PacketFactory.parse_buffer(message)
                 self.handle_packet(packet)
             self.stream.clear_in_buff()
             self.handle_user_interface_buffer()
-            self.stream.send_out_buf_messages()
+            self.stream.send_out_buf_messages(self.reunion_mode == ReunionMode.FAILED)
             time.sleep(2)
 
     def run_reunion_daemon(self):
@@ -171,14 +175,28 @@ class Peer:
             2. If we are a non-root Peer, save the time when you have sent your last Reunion Hello packet; You need this
                time for checking whether the Reunion was failed or not.
             3. For choosing time intervals you should wait until Reunion Hello or Reunion Hello Back arrival,
-               pay attention that our NetworkGraph depth will not be bigger than 8. (Do not forget main loop sleep time)
+               pay attention that our NetworkGraph depth will not be bigger than 8. (Do not forget main loop sleep time)   ---> finally decided on 36sec
             4. Suppose that you are a non-root Peer and Reunion was failed, In this time you should make a new Advertise
                Request packet and send it through your register_connection to the root; Don't forget to send this packet
                here, because in the Reunion Failure mode our main loop will not work properly and everything will be got stock!
 
         :return:
         """
-        pass
+        while True:
+            if not self.is_root:
+                if self.last_hello_time - self.last_hello_back_time > 36:
+                    self.reunion_mode = ReunionMode.FAILED
+                    packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
+                    self.stream.add_message_to_out_buff(self.root_address, packet, True)
+                    time.sleep(3)
+                else:
+                    packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, [self.address])
+                    self.stream.add_message_to_out_buff(self.parent_address, packet)
+                    self.last_hello_time = time.time()
+            if self.is_root:
+                #todo impl
+                pass
+            time.sleep(4)
 
     def send_broadcast_packet(self, broadcast_packet: Packet) -> None:
         """
@@ -213,6 +231,10 @@ class Peer:
         if not self.__validate_received_packet(packet):
             return
         packet_type = packet.get_type()
+        if self.reunion_mode == ReunionMode.FAILED:
+            if packet_type == PacketType.ADVERTISE:
+                self.__handle_advertise_packet(packet)
+            return
         if packet_type == PacketType.MESSAGE:
             self.__handle_message_packet(packet)
         elif packet_type == PacketType.ADVERTISE:
