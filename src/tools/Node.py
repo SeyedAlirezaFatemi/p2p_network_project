@@ -30,6 +30,7 @@ class Node:
         self.out_buff: List[Packet] = []
         self.is_register = set_register
 
+        # TODO: The warning
         try:
             self.client = ClientSocket(self.server_ip, self.server_port)
         except:

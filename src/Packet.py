@@ -297,7 +297,7 @@ class Packet:
     def get_source_server_address(self) -> Address:
         """
 
-        :return: Server address; The format is like ('192.168.001.001', 05335).
+        :return: Server address; The format is like ('192.168.001.001', 5335).
         :rtype: Address
         """
         return self.source_ip, self.source_port

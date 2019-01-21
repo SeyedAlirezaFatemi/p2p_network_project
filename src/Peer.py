@@ -375,7 +375,7 @@ class Peer:
                 self.__handle_reunion_hello_back(packet)
 
     def __update_last_reunion(self, packet: Packet):
-        sender_address = packet.get_source_server_address()
+        sender_address = packet.get_addresses()[0]
         self.network_graph.keep_alive(sender_address)
 
     def __respond_to_reunion(self, packet: Packet):
@@ -390,12 +390,11 @@ class Peer:
         return ReunionType.REQ
 
     def __pass_reunion_hello(self, packet: Packet):
-        new_addresses = self.__format_reunion_addresses_on_pass(packet)
-        request_packet = PacketFactory.new_reunion_packet(ReunionType.REQ, packet.get_source_server_address(),
-                                                          new_addresses)
+        new_addresses = self.__format_reunion_hello_addresses_on_pass(packet)
+        request_packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, new_addresses)
         self.stream.add_message_to_out_buff(self.parent_address, request_packet)
 
-    def __format_reunion_addresses_on_pass(self, packet: Packet) -> List[Address]:
+    def __format_reunion_hello_addresses_on_pass(self, packet: Packet) -> List[Address]:
         addresses = packet.get_addresses()
         addresses.append(self.address)
         return addresses
@@ -408,10 +407,10 @@ class Peer:
             self.__pass_reunion_hello_back(packet)
 
     def __pass_reunion_hello_back(self, packet: Packet):
-        addresses = packet.get_addresses()[1:]
-        next_node = addresses[0]
-        passed_packet = PacketFactory.new_reunion_packet(ReunionType.RES, packet.get_source_server_address(), addresses)
-        self.stream.add_message_to_out_buff(next_node, passed_packet)
+        new_addresses = packet.get_addresses()[1:]
+        next_node_address = new_addresses[0]
+        passed_packet = PacketFactory.new_reunion_packet(ReunionType.RES, self.address, new_addresses)
+        self.stream.add_message_to_out_buff(next_node_address, passed_packet)
 
     def __handle_join_packet(self, packet: Packet):
         """
