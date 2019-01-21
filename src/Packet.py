@@ -180,7 +180,7 @@
 import socket
 import struct
 from enum import Enum, unique
-from typing import List
+from typing import List, Optional
 
 from src.tools.parsers import parse_ip, parse_port
 from src.tools.type_repo import Address
@@ -302,7 +302,9 @@ class Packet:
         """
         return self.source_ip, self.source_port
 
-    def get_addresses(self) -> List[Address]:
+    def get_addresses(self) -> Optional[List[Address]]:
+        if self.get_type() != PacketType.REUNION:
+            return None
         body = self.get_body()
         n_entries = int(body[3:5])
         addresses = []
@@ -314,7 +316,9 @@ class Packet:
             addresses.append((body[ip_start:ip_end], int(body[port_start:port_end])))
         return addresses
 
-    def get_n_entries(self) -> int:
+    def get_n_entries(self) -> Optional[int]:
+        if self.get_type() != PacketType.REUNION:
+            return None
         return int(self.get_body()[3:5])
 
 
