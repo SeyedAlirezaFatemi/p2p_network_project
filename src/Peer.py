@@ -12,6 +12,8 @@ from src.tools.parsers import parse_ip
 from src.tools.type_repo import Address
 from tools.logger import log
 
+TIME_INTERVAL = 2
+
 """
     Peer is our main object in this project.
     In this network Peers will connect together to make a tree graph.
@@ -178,6 +180,30 @@ class Peer:
 
         :return:
         """
+
+        is_root = self.is_root
+        if is_root:
+            self.__handle_root_reunion()
+        else:
+            self.__handle_non_root_reunion()
+        pass
+
+    def __handle_root_reunion(self):
+        while True:
+            for node in self.network_graph.nodes:
+                last_hello_time = node.last_hello
+                if self.__time_is_over(last_hello_time):
+
+                    self.network_graph.turn_off_node(node.address)
+                    # TODO Maybe you need to remove it from our NetworkGraph
+            time.sleep(TIME_INTERVAL)
+
+    def __handle_non_root_reunion(self):
+        # TODO I will complete this function
+        pass
+
+    def __time_is_over(self, last_hello_time: float):
+        # TODO Alireza return True if last_hello_time is over, else False. I dont know is_over situation
         pass
 
     def send_broadcast_packet(self, broadcast_packet: Packet) -> None:

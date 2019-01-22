@@ -1,9 +1,9 @@
 import time
 from typing import List, Optional
 
+from src.tools.logger import log
+from src.tools.parsers import parse_ip
 from src.tools.type_repo import Address
-from tools.logger import log
-from tools.parsers import parse_ip
 
 
 class GraphNode:
