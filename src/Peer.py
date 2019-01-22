@@ -186,10 +186,10 @@ class Peer:
         :return:
         """
         while True:
-            if not self.is_root:
-                self.__run_non_root_reunion_daemon()
             if self.is_root:
                 self.__run_root_reunion_daemon()
+            else:
+                self.__run_non_root_reunion_daemon()
             time.sleep(4)
 
     def __run_root_reunion_daemon(self):
@@ -197,10 +197,10 @@ class Peer:
         for node in graph_nodes:
             if node.address == self.address:
                 continue
-            time_passes_since_last_hello = node.last_hello - time.time()
-            log(f'Time passed since last hello from Node({node.address}): {time_passes_since_last_hello}')
-            if time_passes_since_last_hello > MAX_HELLO_INTERVAL:
-                self.network_graph.remove_node(node)
+            time_passed_since_last_hello = time.time() - node.last_hello
+            log(f'Time passed since last hello from Node({node.address}): {time_passed_since_last_hello}')
+            if time_passed_since_last_hello > MAX_HELLO_INTERVAL:
+                self.network_graph.remove_node(node.address)
 
     def __run_non_root_reunion_daemon(self):
         time_between_last_hello_and_last_hello_back = self.last_hello_time - self.last_hello_back_time
@@ -211,7 +211,7 @@ class Peer:
             self.__handle_advertise_command()  # Send new Advertise packet
             time.sleep(3)
         else:
-            log(f'Sending new Reunion packet.')
+            log(f'Sending new Reunion Hello packet.')
             packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, [self.address])
             self.stream.add_message_to_out_buff(self.parent_address, packet)
             self.last_hello_time = time.time()
@@ -338,10 +338,14 @@ class Peer:
         self.network_graph.add_node(sender_semi_node.get_ip(), sender_semi_node.get_port(), advertised_address)
 
     def __handle_advertise_response(self, packet: Packet) -> None:
+        self.last_hello_time = time.time()
+        self.last_hello_back_time = time.time()
         parent_address = packet.get_advertised_address()
         log(f'Trying to join Node({parent_address})...')
         self.parent_address = parent_address
         join_packet = PacketFactory.new_join_packet(self.address)
+        self.stream.add_node(parent_address)  # Add a non_register Node to stream to the parent
+        log(f'Join Request added to out buf on Node({parent_address}).')
         self.stream.add_message_to_out_buff(parent_address, join_packet)
         self.reunion_mode = ReunionMode.ACCEPTANCE
         if not self.reunion_daemon.is_alive():
