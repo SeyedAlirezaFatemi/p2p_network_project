@@ -9,9 +9,9 @@ from tools.parsers import parse_ip
 class GraphNode:
     def __init__(self, address: Address):
         self.address = address
-        self.parent = None
-        self.children = []
-        self.level = None
+        self.parent: GraphNode = None
+        self.children: List[GraphNode] = []
+        self.level: int = None
         self.is_alive = False
         self.last_hello = None
 
@@ -38,8 +38,11 @@ class GraphNode:
         if len(self.children) < 2:
             self.children.append(child)
         else:
-            # TODO: Something went wrong
-            pass
+            # Something went wrong
+            log('The Network is not working properly.')
+
+    def hello(self):
+        self.last_hello = time.time()
 
     def __eq__(self, other) -> bool:
         return self.address == other.address
@@ -117,7 +120,21 @@ class NetworkGraph:
         self.find_node(node_address).is_alive = False
 
     def remove_node(self, node_address: Address) -> None:
-        self.nodes.remove(self.find_node(node_address))
+        log(f'Node({node_address}) was REMOVED.')
+        node = self.find_node(node_address)
+        self.turn_off_subtree(node)
+        self.nodes.remove(node)
+
+    def turn_off_subtree(self, node: GraphNode):
+        parents = [node]
+        while True:
+            parent = parents[0]
+            if parent:
+                for child in parent.children:
+                    child.is_alive = False
+                    parents.append(child)
+                    parents.remove(parent)
+                    log(f'Node({node}) was turned OFF.')
 
     def add_node(self, ip: str, port: int, father_address: Address) -> None:
         """

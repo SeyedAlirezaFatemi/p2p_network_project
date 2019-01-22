@@ -18,7 +18,8 @@ from tools.logger import log
     This network is not completely decentralised but will show you some real-world challenges in Peer to Peer networks.    
 """
 
-MAX_PENDING_TIME = 36;
+MAX_PENDING_TIME = 36
+MAX_HELLO_INTERVAL = 24
 
 
 class ReunionMode(Enum):
@@ -184,19 +185,27 @@ class Peer:
         """
         while True:
             if not self.is_root:
-                if self.last_hello_time - self.last_hello_back_time > 36:
-                    self.reunion_mode = ReunionMode.FAILED
-                    packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
-                    self.stream.add_message_to_out_buff(self.root_address, packet, True)
-                    time.sleep(3)
-                else:
-                    packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, [self.address])
-                    self.stream.add_message_to_out_buff(self.parent_address, packet)
-                    self.last_hello_time = time.time()
+                self.__run_non_root_reunion_daemon()
             if self.is_root:
-                #todo impl
-                pass
+                self.__run_root_reunion_daemon()
             time.sleep(4)
+
+    def __run_root_reunion_daemon(self):
+        graph_nodes = self.network_graph.nodes
+        for node in graph_nodes:
+            if node.last_hello - time.time() > MAX_HELLO_INTERVAL:
+                self.network_graph.remove_node(node)
+
+    def __run_non_root_reunion_daemon(self):
+        if self.last_hello_time - self.last_hello_back_time > MAX_PENDING_TIME:
+            self.reunion_mode = ReunionMode.FAILED
+            packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
+            self.stream.add_message_to_out_buff(self.root_address, packet, want_register=True)
+            time.sleep(3)
+        else:
+            packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, [self.address])
+            self.stream.add_message_to_out_buff(self.parent_address, packet)
+            self.last_hello_time = time.time()
 
     def send_broadcast_packet(self, broadcast_packet: Packet) -> None:
         """
