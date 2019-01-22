@@ -468,9 +468,8 @@ class Peer:
         self.stream.add_message_to_out_buff(next_node_address, response_packet)
 
     def __identify_reunion_type(self, packet: Packet) -> ReunionType:
-        if packet.get_source_server_address() == self.parent_address:
-            return ReunionType.RES
-        return ReunionType.REQ
+        reunion_type = packet.get_body()[:3]
+        return ReunionType(reunion_type)
 
     def __pass_reunion_hello(self, packet: Packet):
         new_addresses = self.__format_reunion_hello_addresses_on_pass(packet)
@@ -486,7 +485,7 @@ class Peer:
         if packet.get_addresses()[0] == self.address:
             # It's our hello back!
             self.last_hello_back_time = time.time()
-            log('We received out HelloBack.')
+            log('We received our HelloBack.')
         else:
             self.__pass_reunion_hello_back(packet)
 

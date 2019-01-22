@@ -300,7 +300,7 @@ class Packet:
         :return: Server address; The format is like ('192.168.001.001', 5335).
         :rtype: Address
         """
-        return self.source_ip, self.source_port
+        return parse_ip(self.source_ip), self.source_port
 
     def get_addresses(self) -> Optional[List[Address]]:
         if self.get_type() != PacketType.REUNION:
@@ -322,7 +322,7 @@ class Packet:
         body = self.get_body()
         n_entries = self.get_n_entries()
         addresses = []
-        for i in range(n_entries - 1, 0, -1):
+        for i in range(n_entries - 1, -1, -1):
             ip_start = 5 + 20 * i
             ip_end = ip_start + 15
             port_start = 20 + 20 * i
