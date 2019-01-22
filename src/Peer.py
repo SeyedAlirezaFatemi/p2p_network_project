@@ -68,7 +68,6 @@ class Peer:
         self.children_addresses: List[Address] = []
         self.stream = Stream(server_ip, server_port)
         self.user_interface = UserInterface()
-        # TODO: hint 4
 
         self.last_hello_back_time = None  # When you received your last hello back from root
         self.last_hello_time = None  # When you sent your last hello to root
@@ -83,6 +82,7 @@ class Peer:
 
         :return:
         """
+        log('UserInterface started.')
         self.user_interface.run()
 
     def handle_user_interface_buffer(self) -> None:
@@ -117,12 +117,12 @@ class Peer:
         self.stream.add_node(self.root_address, set_register_connection=True)
         register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address, self.root_address)
         self.stream.add_message_to_out_buff(self.root_address, register_packet, want_register=True)
-        log('Register packet added to out buff.')
+        log(f'Register packet added to out buff of Node({self.root_address}).')
 
     def __handle_advertise_command(self) -> None:
         advertise_packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
         self.stream.add_message_to_out_buff(self.root_address, advertise_packet, want_register=True)
-        log('Advertise packet added to out buff.')
+        log(f'Advertise packet added to out buff of Node({self.root_address}).')
 
     def __handle_message_command(self, command: str) -> None:
         message = command[12:]
@@ -148,7 +148,6 @@ class Peer:
         :return:
         """
         while True:
-
             in_buff = self.stream.read_in_buf()
             for message in in_buff:
                 packet = PacketFactory.parse_buffer(message)
@@ -193,15 +192,21 @@ class Peer:
     def __run_root_reunion_daemon(self):
         graph_nodes = self.network_graph.nodes
         for node in graph_nodes:
-            if node.last_hello - time.time() > MAX_HELLO_INTERVAL:
+            time_passes_since_last_hello = node.last_hello - time.time()
+            log(f'Time passed since last hello from Node({node.address}): {time_passes_since_last_hello}')
+            if time_passes_since_last_hello > MAX_HELLO_INTERVAL:
                 self.network_graph.remove_node(node)
 
     def __run_non_root_reunion_daemon(self):
+        time_between_last_hello_and_last_hello_back = self.last_hello_time - self.last_hello_back_time
+        log(f'Time between last hello and last hello back: {time_between_last_hello_and_last_hello_back}')
         if self.last_hello_time - self.last_hello_back_time > MAX_PENDING_TIME:
+            log('Seems like we are disconnected from the root. Trying to reconnect...')
             self.reunion_mode = ReunionMode.FAILED
             self.__handle_advertise_command()  # Send new Advertise packet
             time.sleep(3)
         else:
+            log(f'Sending new Reunion packet.')
             packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, [self.address])
             self.stream.add_message_to_out_buff(self.parent_address, packet)
             self.last_hello_time = time.time()
@@ -221,7 +226,7 @@ class Peer:
         """
         for neighbor_address in [*self.children_addresses, self.parent_address]:
             self.stream.add_message_to_out_buff(neighbor_address, broadcast_packet)
-        log('Message packet added to out buffs.')
+            log(f'Message packet added to out buff of Node({neighbor_address}).')
 
     def handle_packet(self, packet):
         """
@@ -239,6 +244,7 @@ class Peer:
         if not self.__validate_received_packet(packet):
             return
         packet_type = packet.get_type()
+        log(f'Packet of type {packet_type.value} received.')
         if self.reunion_mode == ReunionMode.FAILED:
             if packet_type == PacketType.ADVERTISE:
                 self.__handle_advertise_packet(packet)
@@ -255,7 +261,9 @@ class Peer:
             self.__handle_reunion_packet(packet)
 
     def __validate_received_packet(self, packet: Packet) -> bool:
-        # TODO: implement
+        if packet.get_length() != len(packet.get_body()):
+            return False
+        # TODO: More conditions
         return True
 
     def __check_registered(self, source_address: Address) -> bool:
@@ -510,4 +518,5 @@ class ReunionThread(threading.Thread):
         self.handler = handler
 
     def run(self):
+        log('Starting reunion daemon...')
         self.handler()
