@@ -335,6 +335,12 @@ class Packet:
             return None
         return int(self.get_body()[3:5])
 
+    def get_advertised_address(self) -> Optional[Address]:
+        if self.get_type() != PacketType.ADVERTISE:
+            return None
+        body = self.get_body()
+        return body[3:18], int(body[18:23])
+
 
 class PacketFactory:
     """
