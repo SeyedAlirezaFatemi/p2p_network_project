@@ -403,6 +403,7 @@ class Peer:
 
         :return:
         """
+        log(f'New message arrived: {packet.get_body()}')
         sender_address = packet.get_source_server_address()
         updated_packet = PacketFactory.new_message_packet(packet.get_body(), self.address)
         if self.__check_neighbour(sender_address):  # From known source
@@ -446,6 +447,8 @@ class Peer:
     def __update_last_reunion(self, packet: Packet):
         sender_address = packet.get_addresses()[0]
         self.network_graph.keep_alive(sender_address)
+        log(f'New Hello from Node({sender_address}).')
+        log(f'HelloBack added to out buf of Node({sender_address})')
 
     def __respond_to_reunion(self, packet: Packet):
         reversed_addresses = packet.get_addresses_in_reverse()
