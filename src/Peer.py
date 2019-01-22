@@ -82,8 +82,9 @@ class Peer:
 
         :return:
         """
-        log('UserInterface started.')
-        self.user_interface.run()
+        if not self.is_root:
+            log('UserInterface started.')
+            self.user_interface.run()
 
     def handle_user_interface_buffer(self) -> None:
         """
@@ -475,12 +476,14 @@ class Peer:
         if packet.get_addresses()[0] == self.address:
             # It's our hello back!
             self.last_hello_back_time = time.time()
+            log('We received out HelloBack.')
         else:
             self.__pass_reunion_hello_back(packet)
 
     def __pass_reunion_hello_back(self, packet: Packet):
         new_addresses = packet.get_addresses()[1:]
         next_node_address = new_addresses[0]
+        log(f'HelloBack packet passed down to Node({next_node_address}).')
         passed_packet = PacketFactory.new_reunion_packet(ReunionType.RES, self.address, new_addresses)
         self.stream.add_message_to_out_buff(next_node_address, passed_packet)
 
@@ -497,6 +500,7 @@ class Peer:
         :return:
         """
         new_member_address = packet.get_source_server_address()
+        log(f'New JOIN packet from Node({new_member_address}).')
         self.stream.add_node(new_member_address)
         self.children_addresses.append(new_member_address)
 
