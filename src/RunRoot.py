@@ -1,6 +1,6 @@
 from src.Peer import Peer
 
-ROOT_IP = 'localhost'
+ROOT_IP = "127.0.0.1"
 ROOT_PORT = 5050
 ROOT_ADDRESS = (ROOT_IP, ROOT_PORT)
 

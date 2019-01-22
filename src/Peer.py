@@ -74,7 +74,9 @@ class Peer:
 
         if is_root:
             self.network_graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
-            self.reunion_daemon.run()
+            self.reunion_daemon.start()
+        else:
+            self.start_user_interface()
 
     def start_user_interface(self) -> None:
         """
@@ -84,7 +86,7 @@ class Peer:
         """
         if not self.is_root:
             log('UserInterface started.')
-            self.user_interface.run()
+            self.user_interface.start()
 
     def handle_user_interface_buffer(self) -> None:
         """
@@ -193,6 +195,8 @@ class Peer:
     def __run_root_reunion_daemon(self):
         graph_nodes = self.network_graph.nodes
         for node in graph_nodes:
+            if node.address == self.address:
+                continue
             time_passes_since_last_hello = node.last_hello - time.time()
             log(f'Time passed since last hello from Node({node.address}): {time_passes_since_last_hello}')
             if time_passes_since_last_hello > MAX_HELLO_INTERVAL:
@@ -245,7 +249,7 @@ class Peer:
         if not self.__validate_received_packet(packet):
             return
         packet_type = packet.get_type()
-        log(f'Packet of type {packet_type.value} received.')
+        log(f'Packet of type {packet_type.name} received.')
         if self.reunion_mode == ReunionMode.FAILED:
             if packet_type == PacketType.ADVERTISE:
                 self.__handle_advertise_packet(packet)
@@ -339,7 +343,7 @@ class Peer:
         self.stream.add_message_to_out_buff(parent_address, join_packet)
         self.reunion_mode = ReunionMode.ACCEPTANCE
         if not self.reunion_daemon.is_alive():
-            self.reunion_daemon.run()
+            self.reunion_daemon.start()
 
     def __handle_register_packet(self, packet: Packet):
         """

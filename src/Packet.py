@@ -265,7 +265,7 @@ class Packet:
         """
         return self.body
 
-    def get_buf(self) -> bytearray:
+    def get_buf(self) -> bytes:
         """
         In this function, we will make our final buffer that represents the Packet with the Struct class methods.
 
@@ -273,7 +273,7 @@ class Packet:
         :rtype: bytearray
         """
         ip = [int(part) for part in self.source_ip.split('.')]
-        return bytearray(
+        return bytes(
             struct.pack(f'!HHLHHHHL{len(self.body)}s', self.version, self.packet_type.value, self.length, ip[0], ip[1],
                         ip[2],
                         ip[3], self.source_port, bytes(self.body, 'utf-8')))
