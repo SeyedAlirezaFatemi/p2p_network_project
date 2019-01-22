@@ -316,7 +316,7 @@ class Peer:
         advertise_type = self.__identify_advertise_type(packet)
         if self.is_root and advertise_type == AdvertiseType.REQ:
             self.__handle_advertise_request(packet)
-        elif not self.is_root and AdvertiseType == AdvertiseType.RES:
+        elif (not self.is_root) and advertise_type == AdvertiseType.RES:
             self.__handle_advertise_response(packet)
 
     def __identify_advertise_type(self, packet: Packet) -> AdvertiseType:
@@ -330,6 +330,7 @@ class Peer:
             log(f'Advertise Request from unregistered source({sender_address}).')
             return
         advertised_address = self.__get_neighbour(sender_address)
+        log(f'Advertising Node({advertised_address}) to Node({sender_address}).')
         advertise_response_packet = PacketFactory.new_advertise_packet(AdvertiseType.RES, self.address,
                                                                        advertised_address)
         self.stream.add_message_to_out_buff(sender_address, advertise_response_packet, want_register=True)
@@ -338,6 +339,7 @@ class Peer:
 
     def __handle_advertise_response(self, packet: Packet) -> None:
         parent_address = packet.get_advertised_address()
+        log(f'Trying to join Node({parent_address})...')
         self.parent_address = parent_address
         join_packet = PacketFactory.new_join_packet(self.address)
         self.stream.add_message_to_out_buff(parent_address, join_packet)

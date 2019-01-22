@@ -30,10 +30,11 @@ class Node:
         self.out_buff: List[Packet] = []
         self.is_register = set_register
 
-        # TODO: The warning
+    def __initialize_client_socket(self):
         try:
             self.client = ClientSocket(self.server_ip, self.server_port)
         except:
+            # TODO: What should we do? The warning in the constructor.
             pass
 
     def send_message(self) -> None:
@@ -43,6 +44,7 @@ class Node:
         :return:
         """
         for packet in self.out_buff:
+            self.__initialize_client_socket()
             response = self.client.send(packet.get_buf())
             if response != b'ACK':
                 log(f"Node({self.get_server_address()}): Message of type {packet.get_type()} not ACKed.")

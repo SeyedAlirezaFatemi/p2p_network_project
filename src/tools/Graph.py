@@ -63,6 +63,7 @@ def check_is_parent(child: GraphNode, parent: GraphNode) -> bool:
 class NetworkGraph:
     def __init__(self, root: GraphNode):
         self.root = root
+        root.keep_alive()
         root.alive = True
         self.nodes = [root]
 
