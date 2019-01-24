@@ -153,7 +153,7 @@ class Stream:
         try:
             node.send_message()
         except:
-            # TODO: Complete this
+            self.nodes.remove(node)
             pass
 
     def send_out_buf_messages(self, only_register: bool = False):
