@@ -114,9 +114,6 @@ class ServerSocket:
                 except queue.Empty:
                     # The queue is empty -> nothing needs to be written.
                     writers.remove(sock)
-                except KeyError:
-                    for s in queue:
-                        print(s)
                 else:
                     # The queue wasn't empty; we did, in fact, get something.
                     # So send it.

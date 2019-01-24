@@ -104,7 +104,7 @@ class NetworkGraph:
         sender_node = self.find_node(sender)  # For the warning
         for node in graph[::-1]:
             if node.level == 8 or len(node.children) == 2 or (not node.is_alive) or (
-                    sender_node and check_is_parent(node, sender_node)):
+                    sender_node and check_is_parent(node, sender_node)) or sender == node.address:
                 continue
             return node.address
         log('Network is full.')

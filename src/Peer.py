@@ -467,9 +467,10 @@ class Peer:
 
     def __update_last_reunion(self, packet: Packet):
         sender_address = packet.get_addresses()[0]
+        next_node = packet.get_addresses()[-1]
         self.network_graph.keep_alive(sender_address)
         log(f'New Hello from Node({sender_address}).')
-        log(f'HelloBack added to out buf of Node({sender_address})')
+        log(f'HelloBack added to out buf of Node({next_node})')
 
     def __respond_to_reunion(self, packet: Packet):
         reversed_addresses = packet.get_addresses_in_reverse()
@@ -492,7 +493,7 @@ class Peer:
         return addresses
 
     def __handle_reunion_hello_back(self, packet: Packet):
-        if packet.get_addresses()[0] == self.address:
+        if packet.get_addresses()[-1] == self.address:
             # It's our hello back!
             self.last_hello_back_time = time.time()
             log('We received our HelloBack.')
