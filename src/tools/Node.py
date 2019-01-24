@@ -32,16 +32,8 @@ class Node:
         self.__initialize_client_socket()
 
     def __initialize_client_socket(self):
-        try:
-            print(self.server_ip, self.server_port)
-            temp = ".".join(str(int(c)) for c in self.server_ip.split("."))
-            self.client = ClientSocket(temp, self.server_port, single_use=False)
-        except Exception as e:
-            raise e
-            self.out_buff.clear()
-
-            # TODO Alireza How we can detach this Node?
-            pass
+        temp = ".".join(str(int(c)) for c in self.server_ip.split("."))
+        self.client = ClientSocket(temp, self.server_port, single_use=False)
 
     def send_message(self) -> None:
         """
@@ -50,13 +42,9 @@ class Node:
         :return:
         """
         for packet in self.out_buff:
-            # self.__initialize_client_socket()
-            try:
-                response = self.client.send(packet.get_buf())
-                if response != b'ACK':
-                    log(f"Node({self.get_server_address()}): Message of type {packet.get_type()} not ACKed.")
-            except Exception as e:
-                print(str(e))
+            response = self.client.send(packet.get_buf())
+            if response != b'ACK':
+                log(f"Node({self.get_server_address()}): Message of type {packet.get_type()} not ACKed.")
 
         self.out_buff.clear()
 

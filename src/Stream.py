@@ -74,8 +74,12 @@ class Stream:
 
         :return:
         """
-        node = Node(server_address, set_register=set_register_connection)
-        self.nodes.append(node)
+        try:
+            node = Node(server_address, set_register=set_register_connection)
+        except:
+            log(f"Wrong address. Cannot connect to {server_address}")
+        else:
+            self.nodes.append(node)
 
     def remove_node(self, node: Node):
         """
@@ -89,8 +93,11 @@ class Stream:
 
         :return:
         """
-        self.nodes.remove(node)
-        node.close()
+        try:
+            self.nodes.remove(node)
+            node.close()
+        except:
+            return
 
     def get_node_by_address(self, ip: str, port: int, want_register: bool = False) -> Optional[Node]:
         """
@@ -155,8 +162,7 @@ class Stream:
         try:
             node.send_message()
         except:
-            self.nodes.remove(node)
-            pass
+            self.remove_node(node)
 
     def send_out_buf_messages(self, only_register: bool = False):
         """

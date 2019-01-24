@@ -163,7 +163,7 @@ class Peer:
                 self.stream.send_out_buf_messages(self.reunion_mode == ReunionMode.FAILED)
                 time.sleep(2)
         except KeyboardInterrupt:
-            print('Interrupted')
+            log('KeyboardInterrupt')
             try:
                 sys.exit(0)
             except SystemExit:

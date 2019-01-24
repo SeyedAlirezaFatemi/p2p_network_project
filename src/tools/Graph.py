@@ -98,8 +98,6 @@ class NetworkGraph:
             # Get all adjacent vertices of the dequeued vertex node
             # If a adjacent has not been visited, then mark it visited and enqueue it
             for child in node.children:
-                print("HLEEerfnerfnerifnerifnerinfire")
-                print(child)
                 if child.address not in visited or not visited[child.address]:
                     queue.append(child)
                     visited[child.address] = True
