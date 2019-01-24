@@ -203,13 +203,14 @@ class Peer:
 
     def __run_root_reunion_daemon(self):
         graph_nodes = self.network_graph.nodes
-        for node in graph_nodes:
-            if node.address == self.address:
+        for graph_node in graph_nodes:
+            if graph_node.address == self.address:
                 continue
-            time_passed_since_last_hello = time.time() - node.last_hello
-            log(f'Time passed since last hello from Node({node.address}): {time_passed_since_last_hello}')
+            time_passed_since_last_hello = time.time() - graph_node.last_hello
+            log(f'Time passed since last hello from Node({graph_node.address}): {time_passed_since_last_hello}')
             if time_passed_since_last_hello > MAX_HELLO_INTERVAL:
-                self.network_graph.remove_node(node.address)
+                self.stream.remove_node(self.stream.get_node_by_address(graph_node.address[0], graph_node.address[1]))
+                self.network_graph.remove_node(graph_node.address)
 
     def __run_non_root_reunion_daemon(self):
         time_between_last_hello_and_last_hello_back = self.last_hello_time - self.last_hello_back_time
