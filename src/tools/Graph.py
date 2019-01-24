@@ -54,10 +54,10 @@ class GraphNode:
 def check_is_parent(child: GraphNode, parent: GraphNode) -> bool:
     while True:
         child = child.parent
-        if child == parent:
-            return True
-        elif child is None:
+        if child is None:
             return False
+        elif child == parent:
+            return True
 
 
 class NetworkGraph:

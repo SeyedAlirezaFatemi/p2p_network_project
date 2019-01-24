@@ -65,7 +65,7 @@ class ServerSocket:
             read, write, err = select.select(readers, writers, readers)
             # Deal with sockets that need to be read from.
             for sock in read:
-                if sock is self._socket:
+                if sock == self._socket:
                     # We have a viable connection!
                     client_socket, client_ip = self._socket.accept()
                     # Make it a non-blocking connection.
@@ -81,7 +81,7 @@ class ServerSocket:
                     try:
                         data = sock.recv(self.received_bytes)
                     except socket.error as e:
-                        if e.errno is errno.ECONNRESET:
+                        if e.errno == errno.ECONNRESET:
                             # Consider 'Connection reset by peer'
                             # the same as reading zero bytes
                             data = None
@@ -109,10 +109,14 @@ class ServerSocket:
             for sock in write:
                 try:
                     # Get the next chunk of data in the queue, but don't wait.
+
                     data = queues[sock].get_nowait()
                 except queue.Empty:
                     # The queue is empty -> nothing needs to be written.
                     writers.remove(sock)
+                except KeyError:
+                    for s in queue:
+                        print(s)
                 else:
                     # The queue wasn't empty; we did, in fact, get something.
                     # So send it.

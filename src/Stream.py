@@ -42,7 +42,9 @@ class Stream:
             queue.put(bytes('ACK', 'utf8'))
             self._server_in_buf.append(data)
 
-        ServerThread(ip, port, callback).start()
+        # ServerThread(ip, port, callback).start()
+        self.tcp = TCPServer(ip, port, callback)
+        self.th = threading.Thread(target=self.tcp.run).start()
 
     def get_server_address(self) -> Address:
         """
