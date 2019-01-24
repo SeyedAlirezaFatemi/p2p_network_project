@@ -34,7 +34,8 @@ class Node:
         try:
             self.client = ClientSocket(self.server_ip, self.server_port)
         except:
-            # TODO: What should we do? The warning in the constructor.
+            self.out_buff.clear()
+            # TODO Alireza How we can detach this Node?
             pass
 
     def send_message(self) -> None:
