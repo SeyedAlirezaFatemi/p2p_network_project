@@ -1,3 +1,5 @@
+import os
+import sys
 import threading
 import time
 from enum import Enum
@@ -150,15 +152,22 @@ class Peer:
 
         :return:
         """
-        while True:
-            in_buff = self.stream.read_in_buf()
-            for message in in_buff:
-                packet = PacketFactory.parse_buffer(message)
-                self.handle_packet(packet)
-            self.stream.clear_in_buff()
-            self.handle_user_interface_buffer()
-            self.stream.send_out_buf_messages(self.reunion_mode == ReunionMode.FAILED)
-            time.sleep(2)
+        try:
+            while True:
+                in_buff = self.stream.read_in_buf()
+                for message in in_buff:
+                    packet = PacketFactory.parse_buffer(message)
+                    self.handle_packet(packet)
+                self.stream.clear_in_buff()
+                self.handle_user_interface_buffer()
+                self.stream.send_out_buf_messages(self.reunion_mode == ReunionMode.FAILED)
+                time.sleep(2)
+        except KeyboardInterrupt:
+            print('Interrupted')
+            try:
+                sys.exit(0)
+            except SystemExit:
+                os._exit(0)
 
     def run_reunion_daemon(self):
         """
