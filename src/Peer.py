@@ -18,7 +18,8 @@ from tools.logger import log
     This network is not completely decentralised but will show you some real-world challenges in Peer to Peer networks.    
 """
 
-MAX_PENDING_TIME = 36;
+MAX_PENDING_TIME = 36
+MAX_HELLO_INTERVAL = 24
 
 
 class ReunionMode(Enum):
@@ -62,19 +63,20 @@ class Peer:
         self.reunion_daemon = ReunionThread(self.run_reunion_daemon)
         self.reunion_mode = ReunionMode.ACCEPTANCE
 
-        self.registered = []
-        self.parent_address = None
-        self.children_addresses = []
+        self.registered: List[SemiNode] = []
+        self.parent_address: Address = None
+        self.children_addresses: List[Address] = []
         self.stream = Stream(server_ip, server_port)
         self.user_interface = UserInterface()
-        # TODO: hint 4
 
         self.last_hello_back_time = None  # When you received your last hello back from root
         self.last_hello_time = None  # When you sent your last hello to root
 
         if is_root:
             self.network_graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
-            self.reunion_daemon.run()
+            self.reunion_daemon.start()
+        else:
+            self.start_user_interface()
 
     def start_user_interface(self) -> None:
         """
@@ -82,7 +84,9 @@ class Peer:
 
         :return:
         """
-        self.user_interface.run()
+        if not self.is_root:
+            log('UserInterface started.')
+            self.user_interface.start()
 
     def handle_user_interface_buffer(self) -> None:
         """
@@ -116,12 +120,12 @@ class Peer:
         self.stream.add_node(self.root_address, set_register_connection=True)
         register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address, self.root_address)
         self.stream.add_message_to_out_buff(self.root_address, register_packet, want_register=True)
-        log('Register packet added to out buff.')
+        log(f'Register packet added to out buff of Node({self.root_address}).')
 
     def __handle_advertise_command(self) -> None:
         advertise_packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
         self.stream.add_message_to_out_buff(self.root_address, advertise_packet, want_register=True)
-        log('Advertise packet added to out buff.')
+        log(f'Advertise packet added to out buff of Node({self.root_address}).')
 
     def __handle_message_command(self, command: str) -> None:
         message = command[12:]
@@ -147,7 +151,6 @@ class Peer:
         :return:
         """
         while True:
-
             in_buff = self.stream.read_in_buf()
             for message in in_buff:
                 packet = PacketFactory.parse_buffer(message)
@@ -175,7 +178,7 @@ class Peer:
             2. If we are a non-root Peer, save the time when you have sent your last Reunion Hello packet; You need this
                time for checking whether the Reunion was failed or not.
             3. For choosing time intervals you should wait until Reunion Hello or Reunion Hello Back arrival,
-               pay attention that our NetworkGraph depth will not be bigger than 8. (Do not forget main loop sleep time)   ---> finally decided on 36sec
+               pay attention that our NetworkGraph depth will not be bigger than 8. (Do not forget main loop sleep time)
             4. Suppose that you are a non-root Peer and Reunion was failed, In this time you should make a new Advertise
                Request packet and send it through your register_connection to the root; Don't forget to send this packet
                here, because in the Reunion Failure mode our main loop will not work properly and everything will be got stock!
@@ -183,20 +186,35 @@ class Peer:
         :return:
         """
         while True:
-            if not self.is_root:
-                if self.last_hello_time - self.last_hello_back_time > 36:
-                    self.reunion_mode = ReunionMode.FAILED
-                    packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
-                    self.stream.add_message_to_out_buff(self.root_address, packet, True)
-                    time.sleep(3)
-                else:
-                    packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, [self.address])
-                    self.stream.add_message_to_out_buff(self.parent_address, packet)
-                    self.last_hello_time = time.time()
             if self.is_root:
-                #todo impl
-                pass
+                self.__run_root_reunion_daemon()
+            else:
+                self.__run_non_root_reunion_daemon()
             time.sleep(4)
+
+    def __run_root_reunion_daemon(self):
+        graph_nodes = self.network_graph.nodes
+        for node in graph_nodes:
+            if node.address == self.address:
+                continue
+            time_passed_since_last_hello = time.time() - node.last_hello
+            log(f'Time passed since last hello from Node({node.address}): {time_passed_since_last_hello}')
+            if time_passed_since_last_hello > MAX_HELLO_INTERVAL:
+                self.network_graph.remove_node(node.address)
+
+    def __run_non_root_reunion_daemon(self):
+        time_between_last_hello_and_last_hello_back = self.last_hello_time - self.last_hello_back_time
+        log(f'Time between last hello and last hello back: {time_between_last_hello_and_last_hello_back}')
+        if self.last_hello_time - self.last_hello_back_time > MAX_PENDING_TIME:
+            log('Seems like we are disconnected from the root. Trying to reconnect...')
+            self.reunion_mode = ReunionMode.FAILED
+            self.__handle_advertise_command()  # Send new Advertise packet
+            time.sleep(3)
+        else:
+            log(f'Sending new Reunion Hello packet.')
+            packet = PacketFactory.new_reunion_packet(ReunionType.REQ, self.address, [self.address])
+            self.stream.add_message_to_out_buff(self.parent_address, packet)
+            self.last_hello_time = time.time()
 
     def send_broadcast_packet(self, broadcast_packet: Packet) -> None:
         """
@@ -213,7 +231,7 @@ class Peer:
         """
         for neighbor_address in [*self.children_addresses, self.parent_address]:
             self.stream.add_message_to_out_buff(neighbor_address, broadcast_packet)
-        log('Message packet added to out buffs.')
+            log(f'Message packet added to out buff of Node({neighbor_address}).')
 
     def handle_packet(self, packet):
         """
@@ -231,6 +249,7 @@ class Peer:
         if not self.__validate_received_packet(packet):
             return
         packet_type = packet.get_type()
+        log(f'Packet of type {packet_type.name} received.')
         if self.reunion_mode == ReunionMode.FAILED:
             if packet_type == PacketType.ADVERTISE:
                 self.__handle_advertise_packet(packet)
@@ -247,7 +266,9 @@ class Peer:
             self.__handle_reunion_packet(packet)
 
     def __validate_received_packet(self, packet: Packet) -> bool:
-        # TODO: implement
+        if packet.get_length() != len(packet.get_body()):
+            return False
+        # TODO: More conditions
         return True
 
     def __check_registered(self, source_address: Address) -> bool:
@@ -292,11 +313,43 @@ class Peer:
 
         :return:
         """
-        pass
+        advertise_type = self.__identify_advertise_type(packet)
+        if self.is_root and advertise_type == AdvertiseType.REQ:
+            self.__handle_advertise_request(packet)
+        elif (not self.is_root) and advertise_type == AdvertiseType.RES:
+            self.__handle_advertise_response(packet)
 
     def __identify_advertise_type(self, packet: Packet) -> AdvertiseType:
         advertise_type = packet.get_body()[:3]
         return AdvertiseType(advertise_type)
+
+    def __handle_advertise_request(self, packet: Packet) -> None:
+        sender_address = packet.get_source_server_address()
+        sender_semi_node = SemiNode(sender_address[0], sender_address[1])
+        if sender_semi_node not in self.registered:
+            log(f'Advertise Request from unregistered source({sender_address}).')
+            return
+        advertised_address = self.__get_neighbour(sender_address)
+        log(f'Advertising Node({advertised_address}) to Node({sender_address}).')
+        advertise_response_packet = PacketFactory.new_advertise_packet(AdvertiseType.RES, self.address,
+                                                                       advertised_address)
+        self.stream.add_message_to_out_buff(sender_address, advertise_response_packet, want_register=True)
+        # Add to network_graph
+        self.network_graph.add_node(sender_semi_node.get_ip(), sender_semi_node.get_port(), advertised_address)
+
+    def __handle_advertise_response(self, packet: Packet) -> None:
+        self.last_hello_time = time.time()
+        self.last_hello_back_time = time.time()
+        parent_address = packet.get_advertised_address()
+        log(f'Trying to join Node({parent_address})...')
+        self.parent_address = parent_address
+        join_packet = PacketFactory.new_join_packet(self.address)
+        self.stream.add_node(parent_address)  # Add a non_register Node to stream to the parent
+        log(f'Join Request added to out buf on Node({parent_address}).')
+        self.stream.add_message_to_out_buff(parent_address, join_packet)
+        self.reunion_mode = ReunionMode.ACCEPTANCE
+        if not self.reunion_daemon.is_alive():
+            self.reunion_daemon.start()
 
     def __handle_register_packet(self, packet: Packet):
         """
@@ -361,6 +414,7 @@ class Peer:
 
         :return:
         """
+        log(f'New message arrived: {packet.get_body()}')
         sender_address = packet.get_source_server_address()
         updated_packet = PacketFactory.new_message_packet(packet.get_body(), self.address)
         if self.__check_neighbour(sender_address):  # From known source
@@ -404,6 +458,8 @@ class Peer:
     def __update_last_reunion(self, packet: Packet):
         sender_address = packet.get_addresses()[0]
         self.network_graph.keep_alive(sender_address)
+        log(f'New Hello from Node({sender_address}).')
+        log(f'HelloBack added to out buf of Node({sender_address})')
 
     def __respond_to_reunion(self, packet: Packet):
         reversed_addresses = packet.get_addresses_in_reverse()
@@ -412,9 +468,8 @@ class Peer:
         self.stream.add_message_to_out_buff(next_node_address, response_packet)
 
     def __identify_reunion_type(self, packet: Packet) -> ReunionType:
-        if packet.get_source_server_address() == self.parent_address:
-            return ReunionType.RES
-        return ReunionType.REQ
+        reunion_type = packet.get_body()[:3]
+        return ReunionType(reunion_type)
 
     def __pass_reunion_hello(self, packet: Packet):
         new_addresses = self.__format_reunion_hello_addresses_on_pass(packet)
@@ -430,12 +485,14 @@ class Peer:
         if packet.get_addresses()[0] == self.address:
             # It's our hello back!
             self.last_hello_back_time = time.time()
+            log('We received our HelloBack.')
         else:
             self.__pass_reunion_hello_back(packet)
 
     def __pass_reunion_hello_back(self, packet: Packet):
         new_addresses = packet.get_addresses()[1:]
         next_node_address = new_addresses[0]
+        log(f'HelloBack packet passed down to Node({next_node_address}).')
         passed_packet = PacketFactory.new_reunion_packet(ReunionType.RES, self.address, new_addresses)
         self.stream.add_message_to_out_buff(next_node_address, passed_packet)
 
@@ -452,6 +509,7 @@ class Peer:
         :return:
         """
         new_member_address = packet.get_source_server_address()
+        log(f'New JOIN packet from Node({new_member_address}).')
         self.stream.add_node(new_member_address)
         self.children_addresses.append(new_member_address)
 
@@ -476,4 +534,5 @@ class ReunionThread(threading.Thread):
         self.handler = handler
 
     def run(self):
+        log('Starting reunion daemon...')
         self.handler()

@@ -1,2 +1,5 @@
+import time
+
+
 def log(message: str) -> None:
-    print(message)
+    print(f"{time.strftime('%X')}: {message}")

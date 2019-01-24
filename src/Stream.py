@@ -6,6 +6,7 @@ from src.tools.Node import Node
 from src.tools.parsers import parse_ip
 from src.tools.simpletcp.tcpserver import TCPServer
 from src.tools.type_repo import Address
+from tools.logger import log
 
 
 class Stream:
@@ -37,10 +38,11 @@ class Stream:
             :param data: The data received from the socket.
             :return:
             """
+            log('New data received.')
             queue.put(bytes('ACK', 'utf8'))
             self._server_in_buf.append(data)
 
-        ServerThread(ip, port, callback).run()
+        ServerThread(ip, port, callback).start()
 
     def get_server_address(self) -> Address:
         """

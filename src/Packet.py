@@ -265,7 +265,7 @@ class Packet:
         """
         return self.body
 
-    def get_buf(self) -> bytearray:
+    def get_buf(self) -> bytes:
         """
         In this function, we will make our final buffer that represents the Packet with the Struct class methods.
 
@@ -273,7 +273,7 @@ class Packet:
         :rtype: bytearray
         """
         ip = [int(part) for part in self.source_ip.split('.')]
-        return bytearray(
+        return bytes(
             struct.pack(f'!HHLHHHHL{len(self.body)}s', self.version, self.packet_type.value, self.length, ip[0], ip[1],
                         ip[2],
                         ip[3], self.source_port, bytes(self.body, 'utf-8')))
@@ -300,7 +300,7 @@ class Packet:
         :return: Server address; The format is like ('192.168.001.001', 5335).
         :rtype: Address
         """
-        return self.source_ip, self.source_port
+        return parse_ip(self.source_ip), self.source_port
 
     def get_addresses(self) -> Optional[List[Address]]:
         if self.get_type() != PacketType.REUNION:
@@ -322,7 +322,7 @@ class Packet:
         body = self.get_body()
         n_entries = self.get_n_entries()
         addresses = []
-        for i in range(n_entries - 1, 0, -1):
+        for i in range(n_entries - 1, -1, -1):
             ip_start = 5 + 20 * i
             ip_end = ip_start + 15
             port_start = 20 + 20 * i
@@ -334,6 +334,12 @@ class Packet:
         if self.get_type() != PacketType.REUNION:
             return None
         return int(self.get_body()[3:5])
+
+    def get_advertised_address(self) -> Optional[Address]:
+        if self.get_type() != PacketType.ADVERTISE:
+            return None
+        body = self.get_body()
+        return body[3:18], int(body[18:23])
 
 
 class PacketFactory:
