@@ -98,6 +98,8 @@ class NetworkGraph:
             # Get all adjacent vertices of the dequeued vertex node
             # If a adjacent has not been visited, then mark it visited and enqueue it
             for child in node.children:
+                print("HLEEerfnerfnerifnerifnerinfire")
+                print(child)
                 if child.address not in visited or not visited[child.address]:
                     queue.append(child)
                     visited[child.address] = True
@@ -124,18 +126,19 @@ class NetworkGraph:
         log(f'Node({node_address}) was REMOVED.')
         node = self.find_node(node_address)
         self.turn_off_subtree(node)
+        node.parent.children.remove(node)
         self.nodes.remove(node)
 
     def turn_off_subtree(self, node: GraphNode):
         parents = [node]
-        while True:
+        while True and len(parents) != 0:
             parent = parents[0]
             if parent:
                 for child in parent.children:
                     child.is_alive = False
                     parents.append(child)
-                    parents.remove(parent)
-                    log(f'Node({node}) was turned OFF.')
+                    log(f'Node({child}) was turned OFF.')
+                parents.remove(parent)
 
     def add_node(self, ip: str, port: int, father_address: Address) -> None:
         """
@@ -156,8 +159,19 @@ class NetworkGraph:
 
         :return:
         """
-        new_node = GraphNode((parse_ip(ip), port))
         father_node = self.find_node(father_address)
+        new_node_address=(parse_ip(ip), port)
+        old_graph_node = self.find_node(new_node_address)
+        if old_graph_node:
+            old_graph_node.keep_alive()
+            old_graph_node.set_parent(father_node)
+            if father_node == self.root:
+                old_graph_node.set_level(1)
+            else:
+                old_graph_node.set_level(father_node.level + 1)
+            father_node.add_child(old_graph_node)
+            return
+        new_node = GraphNode(new_node_address)
         new_node.set_parent(father_node)
         if father_node == self.root:
             new_node.set_level(1)

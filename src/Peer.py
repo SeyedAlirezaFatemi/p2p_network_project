@@ -105,11 +105,11 @@ class Peer:
         """
         user_interface_buffer = self.user_interface.buffer
         for command in user_interface_buffer:
-            if command == 'Register':
+            if command.lower() == 'register':
                 self.__handle_register_command()
-            elif command == 'Advertise':
+            elif command.lower() == 'advertise':
                 self.__handle_advertise_command()
-            elif command.startswith('SendMessage'):
+            elif command.lower().startswith('sendmessage'):
                 self.__handle_message_command(command)
             else:
                 log('Are you on drugs?')
@@ -429,7 +429,7 @@ class Peer:
         updated_packet = PacketFactory.new_message_packet(packet.get_body(), self.address)
         if self.__check_neighbour(sender_address):  # From known source
             for neighbor_address in [*self.children_addresses, self.parent_address]:
-                if neighbor_address != sender_address:
+                if neighbor_address is not None and neighbor_address != sender_address:
                     self.stream.add_message_to_out_buff(neighbor_address, updated_packet)
 
     def __handle_reunion_packet(self, packet: Packet):
