@@ -265,7 +265,8 @@ class Peer:
         elif packet_type == PacketType.REUNION:
             self.__handle_reunion_packet(packet)
 
-    def __validate_received_packet(self, packet: Packet) -> bool:
+    @staticmethod
+    def __validate_received_packet(packet: Packet) -> bool:
         if packet.get_length() != len(packet.get_body()):
             return False
         # TODO: More conditions
