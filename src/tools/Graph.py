@@ -126,6 +126,7 @@ class NetworkGraph:
         self.turn_off_subtree(node)
         node.parent.children.remove(node)
         self.nodes.remove(node)
+        self.draw_graph()
 
     def turn_off_subtree(self, node: GraphNode):
         parents = [node]
@@ -171,6 +172,7 @@ class NetworkGraph:
         self.level_node(new_node, father_node)
         father_node.add_child(new_node)
         self.nodes.append(new_node)
+        self.draw_graph()
 
     def level_node(self, node: GraphNode, father_node: GraphNode) -> None:
         if father_node == self.root:
@@ -181,3 +183,36 @@ class NetworkGraph:
     def keep_alive(self, address: Address) -> None:
         graph_node = self.find_node(address)
         graph_node.keep_alive()
+
+    def draw_graph(self):
+        # Libraries
+        # import numpy as np
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import networkx as nx
+
+        fig = plt.figure()
+        fig.suptitle('Network Graph', fontsize=14, fontweight='bold')
+
+        # Build a dataframe with connections
+        from_nodes = []
+        to_nodes = []
+        parents = [self.root]
+        while True and len(parents) != 0:
+            parent = parents[0]
+            if parent:
+                for child in parent.children:
+                    from_nodes.append(parent.address.__str__())
+                    to_nodes.append(child.address.__str__())
+                    parents.append(child)
+                parents.remove(parent)
+        from_nodes.reverse()
+        to_nodes.reverse()
+        df = pd.DataFrame({'from': from_nodes, 'to': to_nodes})
+
+        # Build graph
+        graph = nx.from_pandas_edgelist(df, source='from', target='to')
+
+        nx.draw(graph, with_labels=True, node_size=1500, node_color="skyblue", node_shape="o", alpha=0.5,
+                linewidths=4, font_size=12, font_color="grey", font_weight="bold", width=2, edge_color="grey")
+        plt.show(figsize=(100, 100), dpi=300, )
