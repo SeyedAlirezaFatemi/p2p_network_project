@@ -20,7 +20,7 @@ class ClientGUIThread(threading.Thread):
             [sg.Button(button_text='SendMessage')],
             [sg.Button(button_text='Exit')]]
 
-        window = sg.Window('Control Panel').Layout(layout)
+        window = sg.Window('Client Control Panel').Layout(layout)
 
         print = sg.EasyPrint
         print('Welcome My Lord!')
