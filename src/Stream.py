@@ -97,6 +97,7 @@ class Stream:
         :return:
         """
         try:
+            log(f"Something happened to Node({node.get_server_address()}).\n\tI'm Going to kill him. Right NOW!")
             self.nodes.remove(node)
             node.close()
         except:
