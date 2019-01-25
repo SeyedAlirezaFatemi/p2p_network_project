@@ -63,7 +63,7 @@ class Stream:
         """
         self._server_in_buf.clear()
 
-    def add_node(self, server_address: Address, set_register_connection: bool = False):
+    def add_node(self, server_address: Address, set_register_connection: bool = False) -> bool:
         """
         Will add new a node to our Stream.
 
@@ -79,8 +79,10 @@ class Stream:
             node = Node(server_address, set_register=set_register_connection)
         except:
             log(f"Wrong address. Cannot connect to {server_address}")
+            return False
         else:
             self.nodes.append(node)
+            return True
 
     def remove_node(self, node: Node):
         """

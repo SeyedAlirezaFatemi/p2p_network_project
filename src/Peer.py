@@ -30,7 +30,8 @@ class ReunionMode(Enum):
 
 
 class Peer:
-    def __init__(self, server_ip: str, server_port: int, is_root: bool = False, root_address: Address = None) -> None:
+    def __init__(self, server_ip: str, server_port: int, is_root: bool = False, root_address: Address = None,
+                 command_line=True) -> None:
         """
         The Peer object constructor.
 
@@ -77,7 +78,7 @@ class Peer:
         if is_root:
             self.network_graph = NetworkGraph(GraphNode((self.server_ip, self.server_port)))
             self.reunion_daemon.start()
-        else:
+        elif command_line:
             self.start_user_interface()
 
     def start_user_interface(self) -> None:
@@ -106,30 +107,30 @@ class Peer:
         user_interface_buffer = self.user_interface.buffer
         for command in user_interface_buffer:
             if command.lower() == 'register':
-                self.__handle_register_command()
+                self.handle_register_command()
             elif command.lower() == 'advertise':
-                self.__handle_advertise_command()
+                self.handle_advertise_command()
             elif command.lower().startswith('sendmessage'):
-                self.__handle_message_command(command)
+                self.handle_message_command(command)
             else:
                 log('Are you on drugs?')
         self.user_interface.clear_buffer()
 
-    def __handle_register_command(self) -> None:
+    def handle_register_command(self) -> None:
         self.__register()
 
     def __register(self) -> None:
-        self.stream.add_node(self.root_address, set_register_connection=True)
-        register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address)
-        self.stream.add_message_to_out_buff(self.root_address, register_packet, want_register=True)
-        log(f'Register packet added to out buff of Node({self.root_address}).')
+        if self.stream.add_node(self.root_address, set_register_connection=True):
+            register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address)
+            self.stream.add_message_to_out_buff(self.root_address, register_packet, want_register=True)
+            log(f'Register packet added to out buff of Node({self.root_address}).')
 
-    def __handle_advertise_command(self) -> None:
+    def handle_advertise_command(self) -> None:
         advertise_packet = PacketFactory.new_advertise_packet(AdvertiseType.REQ, self.address)
         self.stream.add_message_to_out_buff(self.root_address, advertise_packet, want_register=True)
         log(f'Advertise packet added to out buff of Node({self.root_address}).')
 
-    def __handle_message_command(self, command: str) -> None:
+    def handle_message_command(self, command: str) -> None:
         message = command[12:]
         broadcast_packet = PacketFactory.new_message_packet(message, self.address)
         self.send_broadcast_packet(broadcast_packet)
@@ -240,8 +241,9 @@ class Peer:
         :return:
         """
         for neighbor_address in [*self.children_addresses, self.parent_address]:
-            self.stream.add_message_to_out_buff(neighbor_address, broadcast_packet)
-            log(f'Message packet added to out buff of Node({neighbor_address}).')
+            if neighbor_address:
+                self.stream.add_message_to_out_buff(neighbor_address, broadcast_packet)
+                log(f'Message packet added to out buff of Node({neighbor_address}).')
 
     def handle_packet(self, packet):
         """
