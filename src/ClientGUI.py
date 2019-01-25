@@ -6,7 +6,7 @@ from RunRoot import ROOT_ADDRESS
 from src.Peer import Peer
 
 
-class GUIThread(threading.Thread):
+class ClientGUIThread(threading.Thread):
     def __init__(self, client: Peer) -> None:
         threading.Thread.__init__(self)
         self.client = client
@@ -43,7 +43,7 @@ class GUIThread(threading.Thread):
 def run():
     client = Peer("127.0.0.1", 1012, is_root=False,
                   root_address=ROOT_ADDRESS, command_line=False)
-    GUIThread(client).start()
+    ClientGUIThread(client).start()
     client.run()
 
 
