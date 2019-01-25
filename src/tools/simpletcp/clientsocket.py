@@ -73,10 +73,7 @@ class ClientSocket:
                 print("You cannot use a single-use socket twice", file=sys.stderr)
                 raise RuntimeError
             # Otherwise, connect
-            if self.connect_ip == '127.000.000.001':
-                self._socket.connect(('localhost', self.connect_port))
-            else:
-                self._socket.connect((self.connect_ip, self.connect_port))
+            self._socket.connect((self.connect_ip, self.connect_port))
             # Keep track of whether this socket has been closed.
             self.closed = False
         # If data is a string, rather than bytes.

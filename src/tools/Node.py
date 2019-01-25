@@ -32,8 +32,8 @@ class Node:
         self.__initialize_client_socket()
 
     def __initialize_client_socket(self):
-        temp = ".".join(str(int(c)) for c in self.server_ip.split("."))
-        self.client = ClientSocket(temp, self.server_port, single_use=False)
+        formatted_ip = ".".join(str(int(part)) for part in self.server_ip.split("."))
+        self.client = ClientSocket(formatted_ip, self.server_port, single_use=False)
 
     def send_message(self) -> None:
         """

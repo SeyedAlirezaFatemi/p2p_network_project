@@ -158,25 +158,25 @@ class NetworkGraph:
         :return:
         """
         father_node = self.find_node(father_address)
-        new_node_address=(parse_ip(ip), port)
+        new_node_address = (parse_ip(ip), port)
         old_graph_node = self.find_node(new_node_address)
         if old_graph_node:
             old_graph_node.keep_alive()
             old_graph_node.set_parent(father_node)
-            if father_node == self.root:
-                old_graph_node.set_level(1)
-            else:
-                old_graph_node.set_level(father_node.level + 1)
+            self.level_node(old_graph_node, father_node)
             father_node.add_child(old_graph_node)
             return
         new_node = GraphNode(new_node_address)
         new_node.set_parent(father_node)
-        if father_node == self.root:
-            new_node.set_level(1)
-        else:
-            new_node.set_level(father_node.level + 1)
+        self.level_node(new_node, father_node)
         father_node.add_child(new_node)
         self.nodes.append(new_node)
+
+    def level_node(self, node: GraphNode, father_node: GraphNode) -> None:
+        if father_node == self.root:
+            node.set_level(1)
+        else:
+            node.set_level(father_node.level + 1)
 
     def keep_alive(self, address: Address) -> None:
         graph_node = self.find_node(address)

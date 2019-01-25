@@ -426,22 +426,19 @@ class PacketFactory:
         return Packet(VERSION, PacketType.JOIN, length, source_server_address[0], source_server_address[1], body)
 
     @staticmethod
-    def new_register_packet(register_type: RegisterType, source_server_address: Address,
-                            address: Address = None) -> Packet:
+    def new_register_packet(register_type: RegisterType, source_server_address: Address) -> Packet:
         """
         :param register_type: Type of Register packet
         :param source_server_address: Server address of the packet sender.
-        :param address: If 'type' is 'REQUEST' we need an address; The format is like ('192.168.001.001', 5335).
 
         :type register_type: RegisterType
         :type source_server_address: Address
-        :type address: Address
 
         :return New Register packet.
         :rtype Packet
 
         """
-        body = 'REQ' + parse_ip(address[0]) + parse_port(address[1]) \
+        body = 'REQ' + parse_ip(source_server_address[0]) + parse_port(source_server_address[1]) \
             if register_type == RegisterType.REQ else 'RES' + 'ACK'
         length = len(body)
         return Packet(VERSION, PacketType.REGISTER, length, source_server_address[0], source_server_address[1], body)

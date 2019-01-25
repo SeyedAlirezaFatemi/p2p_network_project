@@ -120,7 +120,7 @@ class Peer:
 
     def __register(self) -> None:
         self.stream.add_node(self.root_address, set_register_connection=True)
-        register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address, self.root_address)
+        register_packet = PacketFactory.new_register_packet(RegisterType.REQ, self.address)
         self.stream.add_message_to_out_buff(self.root_address, register_packet, want_register=True)
         log(f'Register packet added to out buff of Node({self.root_address}).')
 
